@@ -108,7 +108,8 @@ This one command:
 
 1. creates the `storynest` database and all 20 tables (`database/schema.sql`),
 2. loads 24 sample titles, 18 tags and 7 badges (`database/seed.sql`),
-3. creates the demo accounts, with passwords hashed using bcrypt.
+3. creates the demo accounts and the per-role test accounts, with passwords
+   hashed using bcrypt.
 
 You should see:
 
@@ -119,10 +120,10 @@ Target: mysql://root@127.0.0.1:3306/storynest
 
 1/3  Creating tables ...
 2/3  Loading the sample library ...
-3/3  Creating demo accounts ...
+3/3  Creating demo and test accounts ...
 
 Done.
-  6 accounts, 24 titles, 18 tags.
+  9 accounts, 24 titles, 18 tags.
 ```
 
 > **Careful:** the script **drops** any existing `storynest` database. It
@@ -159,6 +160,15 @@ For development, `npm run dev` restarts the server whenever you save a file.
 | **Child** | `ada` | `storynest1` | Age 11, sci-fi blocked, 90 min/day |
 | **Child** | `sam` | `storynest1` | Age 6, 45 min/day (belongs to Daniel) |
 | **Guest** | *don't sign in* | — | Browsing works; saving and Story Chat ask you to sign in |
+
+`npm run db:setup` also creates one **test account per role**, with no parental
+restrictions on the child, for checking each role in isolation:
+
+| Role | Sign in with | Password | Notes |
+|---|---|---|---|
+| **Administrator** | `test.admin@storynest.local` | `TestAdmin123!` | — |
+| **Adult** | `test.parent@storynest.local` | `TestParent123!` | Parent of *Test Kid* |
+| **Child** | `testkid` | `testkid1` | Age 9, no blocked genres, no screen limit |
 
 Children sign in with a **login ID**, not an email address — their parent picks
 it when creating the account.
@@ -216,7 +226,7 @@ storynest/
 │   ├── schema.sql          # all 20 tables — drops and recreates the database
 │   └── seed.sql            # sample titles, tags and badges
 ├── scripts/
-│   └── setup-db.js         # runs both SQL files, then creates the demo accounts
+│   └── setup-db.js         # runs both SQL files, then creates the accounts
 ├── server/
 │   ├── index.js            # Express app: middleware, routes, static files
 │   ├── config.js           # reads .env

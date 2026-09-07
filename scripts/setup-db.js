@@ -2,13 +2,13 @@
 'use strict';
 /**
  * Creates the StoryNest database, loads the sample library, and creates the
- * demo accounts described in INSTALLATION.md.
+ * demo accounts and the per-role test accounts described in INSTALLATION.md.
  *
  *   npm run db:setup    - refuses to run if the database already has accounts
  *   npm run db:reset    - drops and rebuilds it anyway
  *
- * Demo passwords are hashed here rather than being written into seed.sql, so
- * no plaintext-to-hash mapping is ever committed to the repository.
+ * Passwords are hashed here rather than being written into seed.sql, so no
+ * plaintext-to-hash mapping is ever committed to the repository.
  */
 const fs = require('fs');
 const path = require('path');
@@ -24,6 +24,15 @@ const DEMO_PASSWORDS = {
   admin: 'Admin123!',
   adult: 'Parent123!',
   child: 'storynest1',
+};
+
+// One plain account per role, with no parental restrictions on the child. The
+// demo family above is deliberately restricted to show the filtering off; these
+// are the known-good logins to test each role against.
+const TEST_PASSWORDS = {
+  admin: 'TestAdmin123!',
+  adult: 'TestParent123!',
+  child: 'testkid1',
 };
 
 function say(msg) { console.log(msg); }
@@ -82,7 +91,7 @@ async function run() {
   say('2/3  Loading the sample library ...');
   await conn.query(fs.readFileSync(path.join(ROOT, 'database', 'seed.sql'), 'utf8'));
 
-  say('3/3  Creating demo accounts ...');
+  say('3/3  Creating demo and test accounts ...');
   await conn.changeUser({ database: config.db.database });
 
   const [adminHash, adultHash, childHash] = await Promise.all([
@@ -128,6 +137,31 @@ async function run() {
   await conn.execute(
     `INSERT INTO child_blocked_genres (child_id, blocked_genre) VALUES (?, 'Mystery'), (?, 'Sci-Fi')`,
     [leoId, adaId],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test accounts - ADMIN, ADULT and CHILD, one each.
+  // ---------------------------------------------------------------------------
+  const [testAdminHash, testAdultHash, testChildHash] = await Promise.all([
+    bcrypt.hash(TEST_PASSWORDS.admin, 12),
+    bcrypt.hash(TEST_PASSWORDS.adult, 12),
+    bcrypt.hash(TEST_PASSWORDS.child, 12),
+  ]);
+
+  await addUser('ADMIN', 'Test Admin', 'test.admin@storynest.local', testAdminHash, '1990-05-20');
+  const testParentId = await addUser('ADULT', 'Test Parent', 'test.parent@storynest.local', testAdultHash, thisYearMinus(38));
+  const testChildId = await addUser('CHILD', 'Test Kid', 'testkid', testChildHash, thisYearMinus(9), 'INTERMEDIATE');
+
+  await conn.execute(
+    'INSERT INTO parent_child_relationships (parent_id, child_id) VALUES (?, ?)',
+    [testParentId, testChildId],
+  );
+  // A controls row with everything left open: the child is still filtered by
+  // its own age, but nothing else is in the way.
+  await conn.execute(
+    `INSERT INTO parental_controls (child_id, max_age, daily_screen_limit, allow_content)
+     VALUES (?, NULL, NULL, TRUE)`,
+    [testChildId],
   );
 
   // Everything in the sample library was catalogued by the administrator.
@@ -205,6 +239,11 @@ async function run() {
   say(`  Child          leo                     /  ${DEMO_PASSWORDS.child}   (age 8, no mysteries)`);
   say(`  Child          ada                     /  ${DEMO_PASSWORDS.child}   (age 11, no sci-fi)`);
   say(`  Child          sam                     /  ${DEMO_PASSWORDS.child}   (age 6)`);
+  say('\nTest accounts (one per role, no restrictions)');
+  say('---------------------------------------------');
+  say(`  Administrator  test.admin@storynest.local   /  ${TEST_PASSWORDS.admin}`);
+  say(`  Adult          test.parent@storynest.local  /  ${TEST_PASSWORDS.adult}   (Test Kid)`);
+  say(`  Child          testkid                      /  ${TEST_PASSWORDS.child}         (age 9)`);
   say('\nChange these before showing the app to anyone outside your team.');
   say('Start the server with:  npm start\n');
 }
