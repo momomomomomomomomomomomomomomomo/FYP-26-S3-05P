@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Chat — StoryNest</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="nav" id="nav"></header>
+<main class="wrap" id="main" style="padding-top:18px">
+  <div id="alert"></div>
+  <div class="chat-shell" id="chatShell">
+    <div class="chat-head spread">
+      <div>
+        <strong>Story Chat</strong>
+        <div class="tiny muted">Ask for a kind of story and I will search your library.</div>
+      </div>
+      <button class="btn btn-sm btn-outline" id="newChat">New chat</button>
+    </div>
+    <div class="chat-log" id="log"></div>
+    <div class="chat-suggestions" id="suggestions"></div>
+    <form class="chat-form" id="chatForm">
+      <input type="text" id="message" placeholder="Something funny and short…" autocomplete="off"
+             maxlength="500" aria-label="Message">
+      <button class="btn btn-primary" type="submit" id="sendBtn">Send</button>
+    </form>
+  </div>
+  <p class="small muted center" style="margin-top:14px">
+    Story Chat only ever suggests titles you are allowed to open.
+  </p>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/chat.js"></script>
+</body>
+</html>

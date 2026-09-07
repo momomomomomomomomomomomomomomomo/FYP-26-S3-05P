@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading — StoryNest</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="nav" id="nav"></header>
+<main class="wrap" id="main" data-no-fab="true">
+  <div id="alert" style="margin-top:20px"></div>
+  <div class="spread" style="margin:20px 0 14px">
+    <div>
+      <h1 id="title" style="font-size:1.4rem;margin:0"></h1>
+      <p class="muted small" id="byline" style="margin:2px 0 0"></p>
+    </div>
+    <a class="btn btn-outline btn-sm" id="backLink" href="/library">Back to the title</a>
+  </div>
+  <div id="screenTime"></div>
+  <div class="reader" id="reader"></div>
+  <div class="reader-bar">
+    <div class="spread">
+      <div class="small muted" id="progressLabel"></div>
+      <div class="row">
+        <button class="btn btn-outline btn-sm" id="prevBtn">← Back</button>
+        <button class="btn btn-primary btn-sm" id="nextBtn">Next →</button>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/read.js"></script>
+</body>
+</html>

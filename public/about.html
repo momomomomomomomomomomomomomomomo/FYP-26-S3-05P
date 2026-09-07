@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About us — StoryNest</title>
+<meta name="description" content="StoryNest - an interactive library of books and videos for children.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="nav" id="nav"></header>
+<main class="wrap" id="main">
+  <section class="hero" style="padding:44px 24px">
+    <h1>About StoryNest</h1>
+    <p class="hero-sub">A reading library built for children, run by the grown-ups who care for them.</p>
+  </section>
+
+  <div class="panel">
+    <h2>What it is</h2>
+    <p>StoryNest is an interactive library of books and videos for children. Young readers browse a shelf
+      that has already been filtered for them, keep favourites and a watchlist, track what they have
+      finished, earn badges, and ask the Story Chat for something new to read.</p>
+    <p style="margin:0">Everything a child can see is decided by the adult who looks after their account —
+      never by the child, and never by chance.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Who uses it</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Account</th><th>What they can do</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill">Guest</span></td>
+              <td>Browse the library and read title pages. Saving, progress and Story Chat need an account.</td></tr>
+          <tr><td><span class="pill pill-child">Child</span></td>
+              <td>Their own account details and the part of the library their grown-up allows. Favourites,
+                  watchlist, reading progress, badges, reviews and Story Chat. They can ask for a locked
+                  title to be unlocked.</td></tr>
+          <tr><td><span class="pill pill-adult">Adult</span></td>
+              <td>Their own account, plus every child account they create: age limits, blocked genres,
+                  daily screen time, unlock requests, and a record of what each child has been doing.</td></tr>
+          <tr><td><span class="pill pill-admin">Administrator</span></td>
+              <td>Every account on the site, the whole catalogue, reported content, announcements and the
+                  full audit trail.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>How we keep it safe</h2>
+    <ul class="stack" style="padding-left:20px;margin:0">
+      <li>Filtering happens on the server. A blocked title is never sent to a child's browser, so it
+          cannot be found by poking around.</li>
+      <li>Children sign in with a short login ID chosen by their parent — no email address required.</li>
+      <li>Passwords are stored as bcrypt hashes; the session cookie cannot be read by page scripts.</li>
+      <li>Every meaningful action is written to an audit log that parents and administrators can read.</li>
+    </ul>
+  </div>
+</main>
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div>© StoryNest — a safe library for young readers.</div>
+    <div class="row">
+      <a href="/about">About us</a>
+      <a href="/library">Library</a>
+      <a href="/watch">Watch</a>
+      <a href="/chat">Story Chat</a>
+    </div>
+  </div>
+</footer>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/about.js"></script>
+</body>
+</html>

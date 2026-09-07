@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create an account — StoryNest</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="nav" id="nav"></header>
+<main class="wrap auth-shell" id="main" style="max-width:460px">
+  <div class="auth-card">
+    <div class="center" style="margin-bottom:20px">
+      <div style="font-size:2rem">📖</div>
+      <h1 style="font-size:1.4rem;margin-bottom:2px">Create a family account</h1>
+      <p class="muted small" style="margin:0">For parents and guardians. You will add your children next.</p>
+    </div>
+    <div id="alert"></div>
+    <form id="registerForm" class="form-grid" novalidate>
+      <div class="field">
+        <label for="name">Your name</label>
+        <input type="text" id="name" autocomplete="name" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="dob">Your date of birth</label>
+        <input type="date" id="dob" required>
+        <span class="hint">You must be 18 or over to open an adult account.</span>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="new-password" required>
+        <span class="hint">At least 8 characters, with a letter and a number.</span>
+      </div>
+      <div class="field">
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" autocomplete="new-password" required>
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" id="consent" required>
+        <span>I am the parent or guardian of the children I will add, and I consent to StoryNest storing
+          their reading activity so I can review it.</span>
+      </label>
+      <button class="btn btn-primary btn-block" type="submit" id="submitBtn">Create account</button>
+    </form>
+    <p class="center small muted" style="margin:18px 0 0">
+      Already have an account? <a href="/login">Sign in</a>
+    </p>
+  </div>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/register.js"></script>
+</body>
+</html>

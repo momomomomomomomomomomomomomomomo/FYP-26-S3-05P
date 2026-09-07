@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My account — StoryNest</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="nav" id="nav"></header>
+<main class="wrap" id="main">
+  <div class="spread" style="margin:26px 0 14px">
+    <div class="row">
+      <span class="avatar" id="bigAvatar" style="width:44px;height:44px;font-size:1rem"></span>
+      <div>
+        <h1 style="margin:0;font-size:1.5rem" id="userName"></h1>
+        <p class="muted small" style="margin:0" id="userMeta"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="alert"></div>
+  <div id="scopeNote"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="reading">Reading</button>
+    <button class="tab" data-tab="favourites">Favourites</button>
+    <button class="tab" data-tab="watchlist">Watchlist</button>
+    <button class="tab" data-tab="badges">Badges</button>
+    <button class="tab" data-tab="requests">Requests</button>
+    <button class="tab" data-tab="profile">Profile</button>
+  </div>
+
+  <section id="panel-reading"></section>
+  <section id="panel-favourites" class="hidden"></section>
+  <section id="panel-watchlist" class="hidden"></section>
+  <section id="panel-badges" class="hidden"></section>
+  <section id="panel-requests" class="hidden"></section>
+  <section id="panel-profile" class="hidden"></section>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/account.js"></script>
+</body>
+</html>
