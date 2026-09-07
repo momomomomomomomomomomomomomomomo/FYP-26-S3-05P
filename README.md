@@ -13,7 +13,7 @@ Quick start, once Node 18+ and MySQL 8+ are installed:
 
 ```bash
 npm install
-cp .env.example .env     # then put your MySQL password in it
+cp .env.sample .env     # then put your MySQL password in it
 npm run db:setup
 npm start                # http://localhost:3000
 ```
