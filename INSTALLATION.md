@@ -68,10 +68,10 @@ Copy the example configuration and edit it:
 
 ```bash
 # macOS / Linux
-cp .env.example .env
+cp .env.sample .env
 
 # Windows (PowerShell)
-Copy-Item .env.example .env
+Copy-Item .env.sample .env
 ```
 
 Open `.env` in any text editor and set the MySQL details you chose in step 1:
