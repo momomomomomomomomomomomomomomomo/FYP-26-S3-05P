@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Family — StoryNest</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="nav" id="nav"></header>
+<main class="wrap" id="main">
+  <div class="spread" style="margin:26px 0 14px">
+    <div>
+      <h1 style="margin:0;font-size:1.5rem">Family</h1>
+      <p class="muted small" style="margin:0">Your children's accounts, what they can see, and what they have been doing.</p>
+    </div>
+    <button class="btn btn-primary" id="addChild">Add a child</button>
+  </div>
+
+  <div id="alert"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="children">Children</button>
+    <button class="tab" data-tab="requests">Requests <span id="requestCount"></span></button>
+    <button class="tab" data-tab="activity">Activity</button>
+  </div>
+
+  <section id="panel-children"></section>
+  <section id="panel-requests" class="hidden"></section>
+  <section id="panel-activity" class="hidden"></section>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/parent.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library — StoryNest</title>
+<meta name="description" content="StoryNest - an interactive library of books and videos for children.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="nav" id="nav"></header>
+<main class="wrap" id="main">
+  <div class="spread" style="margin:26px 0 6px">
+    <div>
+      <h1 id="pageTitle">Library</h1>
+      <p class="muted" id="pageSub">Every book and video you can open.</p>
+    </div>
+    <div class="row">
+      <input type="search" id="q" placeholder="Search titles, authors…" style="min-width:220px" aria-label="Search the library">
+      <button class="btn btn-outline" id="filterToggle">Filters</button>
+    </div>
+  </div>
+
+  <div id="scopeNote"></div>
+  <div id="alert"></div>
+
+  <div class="filters" id="filters">
+    <div class="filter-row">
+      <div class="field">
+        <label for="fType">Format</label>
+        <select id="fType">
+          <option value="">Books and videos</option>
+          <option value="BOOK">Books</option>
+          <option value="VIDEO">Videos</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fLevel">Reading level</label>
+        <select id="fLevel">
+          <option value="">Any level</option>
+          <option value="BEGINNER">Beginner</option>
+          <option value="INTERMEDIATE">Intermediate</option>
+          <option value="ADVANCED">Advanced</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fAge">Suitable for</label>
+        <select id="fAge">
+          <option value="">Any age</option>
+          <option value="5">Up to 5</option>
+          <option value="7">Up to 7</option>
+          <option value="9">Up to 9</option>
+          <option value="12">Up to 12</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fSort">Sort by</label>
+        <select id="fSort">
+          <option value="popular">Most loved</option>
+          <option value="newest">Newest</option>
+          <option value="title">Title A–Z</option>
+          <option value="age">Youngest first</option>
+          <option value="shortest">Shortest first</option>
+        </select>
+      </div>
+      <div class="field field-full">
+        <label>Genres and topics</label>
+        <div class="chips" id="tagChips"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="clearFilters">Clear</button>
+    </div>
+  </div>
+
+  <p class="small muted" id="resultCount"></p>
+  <div class="grid" id="grid"></div>
+  <div class="center" style="margin:26px 0">
+    <button class="btn btn-outline hidden" id="loadMore">Show more</button>
+  </div>
+</main>
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div>© StoryNest — a safe library for young readers.</div>
+    <div class="row">
+      <a href="/about">About us</a>
+      <a href="/library">Library</a>
+      <a href="/watch">Watch</a>
+      <a href="/chat">Story Chat</a>
+    </div>
+  </div>
+</footer>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/library.js"></script>
+</body>
+</html>
