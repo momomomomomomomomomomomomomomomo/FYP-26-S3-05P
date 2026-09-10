@@ -1,7 +1,9 @@
 /* The Library and Watch pages. Watch is the same page pinned to videos. */
 (function library(global) {
   'use strict';
-  const { el, $, $$, clear, card, skeletonGrid, emptyState, showError } = global.SN;
+  const {
+    el, $, $$, clear, card, skeletonGrid, emptyState, showError, modal, guestEmail,
+  } = global.SN;
 
   const VIDEOS_ONLY = global.location.pathname.replace(/\.html$/, '') === '/watch';
   const PAGE_SIZE = 24;
@@ -44,12 +46,89 @@
         : bits[0]));
   }
 
+  /** True once the signed-in reader is a child: fewer controls, bigger targets. */
+  function isKid() {
+    const scope = global.SN.scope;
+    return !!(scope && scope.role === 'CHILD');
+  }
+
+  /**
+   * The children's version of the catalogue. Same data and the same parental
+   * filtering - only the controls change: no sort menu, no reading level, no
+   * age menu (their grown-up already set that), and topics as big chips.
+   */
+  function renderKidControls() {
+    document.body.classList.add('kid-mode');
+    $('#filters').classList.add('hidden');
+    $('#filterToggle').classList.add('hidden');
+
+    $('#pageTitle').textContent = 'My Library';
+    $('#pageSub').textContent = 'Everything you can read and watch.';
+    $('#q').placeholder = 'Look for a dragon, a puppy, space\u2026';
+
+    const host = el('div', { class: 'kid-topics', id: 'kidControls' }, [
+      // The Watch page is already pinned to videos, so a format switch there
+      // would only let a child undo the page they chose.
+      VIDEOS_ONLY ? null : el('div', { class: 'kid-switch' }, [
+        ['', '\u2728 Everything'], ['BOOK', '\ud83d\udcd6 Books'], ['VIDEO', '\u25b6 Videos'],
+      ].map(([value, label]) => el('button', {
+        class: `chip ${state.type === value ? 'on' : ''}`.trim(),
+        type: 'button',
+        text: label,
+        onclick: (event) => {
+          state.type = value;
+          $$('#kidControls .kid-switch .chip').forEach((c) => c.classList.remove('on'));
+          event.currentTarget.classList.add('on');
+          reload();
+        },
+      }))),
+      el('h2', { text: 'What are you in the mood for?' }),
+      el('div', { class: 'chips', id: 'tagChipsKid' }),
+    ]);
+    $('#filters').insertAdjacentElement('afterend', host);
+  }
+
+  /** Guests keep favourites against an email address, so show them back. */
+  function renderGuestSaved() {
+    if (global.SN.user || !guestEmail()) return;
+    const link = el('button', {
+      class: 'btn btn-ghost btn-sm',
+      type: 'button',
+      text: '\u2606 Titles I saved',
+      onclick: async () => {
+        const body = el('div', { class: 'grid grid-narrow' });
+        const dialog = modal('Saved to your email', body, null);
+        try {
+          const data = await global.api.get(
+            `/api/content/guest-favourites/${encodeURIComponent(guestEmail())}`,
+          );
+          clear(body);
+          if (!data.items.length) {
+            body.appendChild(emptyState('\u2606', 'Nothing saved yet',
+              'Use Preview on any cover to save it with your email.'));
+            return;
+          }
+          data.items.forEach((titleItem) => body.appendChild(card(titleItem, { preview: false })));
+        } catch (err) {
+          clear(body);
+          body.appendChild(el('div', { class: 'alert alert-error', text: err.message }));
+        }
+        return dialog;
+      },
+    });
+    $('#filterToggle').insertAdjacentElement('beforebegin', link);
+  }
+
   async function loadTags() {
     try {
       const data = await global.api.get('/api/content/tags');
-      const host = $('#tagChips');
+      const host = $('#tagChipsKid') || $('#tagChips');
       clear(host);
-      data.items.filter((t) => t.content_count > 0).forEach((tag) => {
+      // Children get topics and genres only: a theme like "Kindness" means
+      // little to them when they are hunting for dinosaurs.
+      const usable = data.items.filter((t) => t.content_count > 0
+        && (!isKid() || t.category !== 'THEME'));
+      usable.forEach((tag) => {
         host.appendChild(el('button', {
           class: `chip ${state.tags.includes(tag.tag_name) ? 'on' : ''}`.trim(),
           type: 'button',
@@ -151,6 +230,8 @@
       reload();
     });
 
+    if (isKid()) renderKidControls();
+    renderGuestSaved();
     renderScopeNote();
     loadTags();
     load(false);

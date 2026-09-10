@@ -89,6 +89,9 @@ CREATE TABLE content (
     duration_minutes INT,
     cover_image_url TEXT,
     external_link TEXT,
+    -- A trailer (video) or sample link (book) anyone may look at, including a
+    -- Guest, without opening the title itself.
+    preview_url TEXT,
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
@@ -119,6 +122,33 @@ CREATE TABLE saved_content (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_content_list (user_id, content_id, list_type)
+);
+
+-- Favourites for visitors who have not registered yet. A Guest gives an email
+-- address instead of creating an account; the rows are copied into
+-- saved_content when that address registers, and dropped afterwards.
+CREATE TABLE guest_favourites (
+    guest_fav_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    content_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_guest_favourite (email, content_id),
+    INDEX idx_guest_favourites_email (email)
+);
+
+-- A one-tap reaction. This is how a child says what they thought of a title:
+-- no typing, one emoji per person per title, replaced when they pick another.
+CREATE TABLE content_reactions (
+    user_id BIGINT NOT NULL,
+    content_id BIGINT NOT NULL,
+    emoji VARCHAR(16) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, content_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
+    INDEX idx_reactions_content (content_id)
 );
 
 CREATE TABLE feedback (

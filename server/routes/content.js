@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 
 const db = require('../db');
 const v = require('../utils/validate');
@@ -10,6 +11,29 @@ const { contentScopeClause, assertScreenTimeRemaining, ageFromDob } = require('.
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+// The only reactions a reader may leave. Keeping this a fixed list means a
+// reaction can never carry arbitrary text, and the front end renders whatever
+// is sent back to it rather than keeping its own copy.
+const REACTIONS = [
+  { emoji: '\u{1F60D}', label: 'Loved it' },
+  { emoji: '\u{1F602}', label: 'So funny' },
+  { emoji: '\u{1F62E}', label: 'Wow!' },
+  { emoji: '\u{1F914}', label: 'Made me think' },
+  { emoji: '\u{1F634}', label: 'A bit sleepy' },
+  { emoji: '\u{1F44D}', label: 'Liked it' },
+];
+const REACTION_EMOJI = REACTIONS.map((r) => r.emoji);
+
+// A Guest may favourite by email; this stops the endpoint being used to write
+// junk rows in bulk.
+const guestFavouriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait a few minutes and try again.' },
+});
 
 const SORTS = {
   popular: 'rating_avg DESC, rating_count DESC, c.created_at DESC',
@@ -80,6 +104,27 @@ async function withPersonalState(rows, userId) {
   });
 }
 
+/** The reaction tally for one title, plus this viewer's own pick. */
+async function reactionsFor(contentId, userId) {
+  const [counts, mine] = await Promise.all([
+    db.query(
+      `SELECT emoji, COUNT(*) AS n FROM content_reactions
+        WHERE content_id = ? GROUP BY emoji`,
+      [contentId],
+    ),
+    userId
+      ? db.queryOne('SELECT emoji FROM content_reactions WHERE user_id = ? AND content_id = ?',
+        [userId, contentId])
+      : null,
+  ]);
+  const byEmoji = new Map(counts.map((c) => [c.emoji, Number(c.n)]));
+  return {
+    options: REACTIONS.map((r) => ({ ...r, count: byEmoji.get(r.emoji) || 0 })),
+    total: counts.reduce((sum, c) => sum + Number(c.n), 0),
+    mine: mine ? mine.emoji : null,
+  };
+}
+
 function normaliseRow(row) {
   return {
     ...row,
@@ -100,10 +145,15 @@ router.get('/', asyncHandler(async (req, res) => {
   const where = [];
   const params = [];
 
+  // Search covers the title, the blurb (which is where character names live),
+  // the author, and the tag vocabulary, so "space", "dinosaurs" or "Pip" all
+  // find something.
   const q = v.str(req.query.q, 'Search', { required: false, max: 100 });
   if (q) {
-    where.push('(c.title LIKE ? OR c.description LIKE ? OR c.author_creator LIKE ?)');
-    params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+    where.push(`(c.title LIKE ? OR c.description LIKE ? OR c.author_creator LIKE ?
+                 OR EXISTS (SELECT 1 FROM content_tags ct JOIN tags t ON t.tag_id = ct.tag_id
+                             WHERE ct.content_id = c.content_id AND t.tag_name LIKE ?))`);
+    params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
   }
 
   const type = v.oneOf(req.query.type, 'Type', ['BOOK', 'VIDEO'], { required: false });
@@ -148,7 +198,7 @@ router.get('/', asyncHandler(async (req, res) => {
   const rows = await db.query(
     `SELECT c.content_id, c.content_type, c.title, c.description, c.author_creator,
             c.age_rating, c.reading_level, c.language, c.duration_minutes,
-            c.cover_image_url, c.created_at, ${ratingSelect}
+            c.cover_image_url, c.preview_url, c.created_at, ${ratingSelect}
        FROM content c
       WHERE 1 = 1${whereSql}${scoped.clause}
       ORDER BY ${sort}
@@ -214,7 +264,8 @@ router.get('/top-picks', asyncHandler(async (req, res) => {
 
   const rows = await db.query(
     `SELECT c.content_id, c.content_type, c.title, c.description, c.author_creator,
-            c.age_rating, c.reading_level, c.duration_minutes, c.cover_image_url, c.created_at,
+            c.age_rating, c.reading_level, c.duration_minutes, c.cover_image_url,
+            c.preview_url, c.created_at,
             (SELECT AVG(f.rating) FROM feedback f
               WHERE f.content_id = c.content_id AND f.status = 'ACTIVE' AND f.rating IS NOT NULL) AS rating_avg,
             (SELECT COUNT(*) FROM feedback f
@@ -298,13 +349,102 @@ router.get('/:id', asyncHandler(async (req, res) => {
     [id, id, ...scoped.params],
   );
 
+  const reactions = await reactionsFor(id, req.user ? req.user.user_id : null);
+
   res.json({
     item: payload,
     reviews: reviews.map((r) => ({
       ...r, feedback_id: Number(r.feedback_id), user_id: Number(r.user_id),
     })),
+    reactions,
     related: related.map(normaliseRow),
   });
+}));
+
+// -----------------------------------------------------------------------------
+// PUT /api/content/:id/reaction  - one-tap emoji reaction
+// A child can say what they thought without writing anything. Sending the
+// reaction they already have removes it, so the same button toggles.
+// -----------------------------------------------------------------------------
+router.put('/:id/reaction', requireAuth, asyncHandler(async (req, res) => {
+  const id = v.int(req.params.id, 'Content id', { min: 1 });
+  const emoji = v.oneOfExact(req.body.emoji, 'Reaction', REACTION_EMOJI);
+  await loadVisibleContent(req, id);
+
+  const existing = await db.queryOne(
+    'SELECT emoji FROM content_reactions WHERE user_id = ? AND content_id = ?',
+    [req.user.user_id, id],
+  );
+
+  if (existing && existing.emoji === emoji) {
+    await db.execute('DELETE FROM content_reactions WHERE user_id = ? AND content_id = ?',
+      [req.user.user_id, id]);
+  } else {
+    await db.execute(
+      `INSERT INTO content_reactions (user_id, content_id, emoji) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE emoji = VALUES(emoji)`,
+      [req.user.user_id, id, emoji],
+    );
+    await audit.logFor(req, {
+      activityType: 'REACTION',
+      description: `Reacted ${emoji} to a title`,
+      contentId: id,
+      targetTable: 'content_reactions',
+      targetId: id,
+    });
+  }
+
+  res.json({ ok: true, reactions: await reactionsFor(id, req.user.user_id) });
+}));
+
+// -----------------------------------------------------------------------------
+// DELETE /api/content/:id/reaction
+// -----------------------------------------------------------------------------
+router.delete('/:id/reaction', requireAuth, asyncHandler(async (req, res) => {
+  const id = v.int(req.params.id, 'Content id', { min: 1 });
+  await db.execute('DELETE FROM content_reactions WHERE user_id = ? AND content_id = ?',
+    [req.user.user_id, id]);
+  res.json({ ok: true, reactions: await reactionsFor(id, req.user.user_id) });
+}));
+
+// -----------------------------------------------------------------------------
+// POST /api/content/:id/guest-favourite
+// A Guest has no account, so their favourites are kept against an email
+// address and copied into the real account if they register with it later.
+// -----------------------------------------------------------------------------
+router.post('/:id/guest-favourite', guestFavouriteLimiter, asyncHandler(async (req, res) => {
+  const id = v.int(req.params.id, 'Content id', { min: 1 });
+  const email = v.email(req.body.email);
+  await loadVisibleContent(req, id);
+
+  await db.execute(
+    `INSERT INTO guest_favourites (email, content_id) VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE created_at = created_at`,
+    [email, id],
+  );
+
+  const saved = await db.queryOne(
+    'SELECT COUNT(*) AS n FROM guest_favourites WHERE email = ?', [email],
+  );
+  res.status(201).json({ ok: true, saved_count: Number(saved.n || 0) });
+}));
+
+// -----------------------------------------------------------------------------
+// GET /api/content/guest-favourites  - what this email has saved so far
+// -----------------------------------------------------------------------------
+router.get('/guest-favourites/:email', guestFavouriteLimiter, asyncHandler(async (req, res) => {
+  const email = v.email(req.params.email);
+  const scoped = contentScopeClause(req.scope, 'c');
+  const rows = await db.query(
+    `SELECT c.content_id, c.content_type, c.title, c.description, c.author_creator,
+            c.age_rating, c.reading_level, c.duration_minutes, c.cover_image_url,
+            c.preview_url, c.created_at, NULL AS rating_avg, 0 AS rating_count
+       FROM guest_favourites g JOIN content c ON c.content_id = g.content_id
+      WHERE g.email = ?${scoped.clause}
+      ORDER BY g.created_at DESC`,
+    [email, ...scoped.params],
+  );
+  res.json({ items: (await withTags(rows)).map(normaliseRow) });
 }));
 
 // -----------------------------------------------------------------------------

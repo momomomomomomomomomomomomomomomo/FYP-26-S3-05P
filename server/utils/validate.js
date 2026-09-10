@@ -78,6 +78,19 @@ function oneOf(value, field, allowed, { required = true } = {}) {
   return s;
 }
 
+/**
+ * Like `oneOf`, but compares exactly: no trimming to upper case. Used for
+ * values where case folding makes no sense, such as an emoji reaction.
+ */
+function oneOfExact(value, field, allowed) {
+  if (value === undefined || value === null || value === '') {
+    throw ApiError.badRequest(`${field} is required.`);
+  }
+  const s = String(value);
+  if (!allowed.includes(s)) throw ApiError.badRequest(`${field} is not one we recognise.`);
+  return s;
+}
+
 function bool(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
   return value === true || value === 'true' || value === 1 || value === '1';
@@ -98,5 +111,5 @@ function offset(value) {
 
 module.exports = {
   str, int, email, loginId, password, childPassword, dateOfBirth,
-  oneOf, bool, limit, offset, EMAIL_RE, LOGIN_ID_RE,
+  oneOf, oneOfExact, bool, limit, offset, EMAIL_RE, LOGIN_ID_RE,
 };

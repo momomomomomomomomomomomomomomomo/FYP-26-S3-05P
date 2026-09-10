@@ -367,6 +367,60 @@ td.actions { white-space: nowrap; }
 .footer-inner { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .footer a { color: var(--ink-muted); }
 
+/* --- Previews ------------------------------------------------------------ */
+/* The card is wrapped so the preview button is a sibling of the link rather
+   than a button nested inside an anchor. */
+.card-wrap { position: relative; display: flex; }
+.card-wrap > .card { flex: 1; min-width: 0; }
+.card-preview {
+  position: absolute; right: 8px; top: 8px; z-index: 4;
+  background: rgba(17,24,39,.78); color: #fff; border: 0; cursor: pointer;
+  font-size: .66rem; font-weight: 700; letter-spacing: .03em;
+  padding: 4px 8px; border-radius: 999px;
+  opacity: 0; transform: translateY(-3px); transition: opacity .14s, transform .14s;
+}
+.card-wrap:hover .card-preview,
+.card-preview:focus-visible { opacity: 1; transform: none; }
+.card-preview:hover { background: var(--blue-600); }
+/* Touch screens have no hover, so the control is always there. */
+@media (hover: none) { .card-preview { opacity: 1; transform: none; } }
+
+.preview { display: grid; gap: 14px; }
+.preview-head { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: start; }
+.preview-cover .cover { aspect-ratio: 3 / 4; border-radius: var(--radius-sm); }
+.preview-sample {
+  background: var(--bg-sunken); border: 1px solid var(--line); border-left: 3px solid var(--blue-500);
+  border-radius: var(--radius-sm); padding: 12px 14px; font-size: .87rem; color: var(--ink-soft);
+}
+.preview-sample p + p { margin-top: 9px; }
+
+/* --- Reactions ----------------------------------------------------------- */
+.reactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.reaction {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 6px 12px; cursor: pointer; font-size: .84rem; color: var(--ink-soft);
+  transition: border-color .12s, background .12s, transform .12s;
+}
+.reaction:hover { border-color: var(--blue-500); transform: translateY(-1px); }
+.reaction.on { background: var(--blue-50); border-color: var(--blue-500); color: var(--blue-600); font-weight: 600; }
+.reaction-emoji { font-size: 1.15rem; line-height: 1; }
+.reaction-count { font-size: .76rem; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.reaction.on .reaction-count { color: var(--blue-600); }
+
+/* --- Kids' simplified library -------------------------------------------- */
+/* Same catalogue, fewer controls and bigger targets. Applied to <body> when
+   the signed-in reader is a child. */
+.kid-mode .grid { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 22px; }
+.kid-mode .card-title { font-size: 1rem; -webkit-line-clamp: 3; }
+.kid-mode .card-meta { font-size: .82rem; }
+.kid-mode .chip { font-size: .92rem; padding: 9px 16px; border-radius: 999px; }
+.kid-mode .card-preview { font-size: .72rem; padding: 5px 10px; }
+.kid-topics { margin: 4px 0 22px; }
+.kid-topics h2 { font-size: .95rem; margin: 0 0 10px; }
+.kid-switch { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.kid-switch .chip { font-weight: 600; }
+
 /* --- Responsive ---------------------------------------------------------- */
 @media (max-width: 860px) {
   .detail { grid-template-columns: 1fr; }
@@ -384,6 +438,8 @@ td.actions { white-space: nowrap; }
   .hero { padding: 38px 18px 32px; }
   .form-grid.two { grid-template-columns: 1fr; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+  .kid-mode .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+  .preview-head { grid-template-columns: 84px 1fr; }
   .msg { max-width: 90%; }
 }
 

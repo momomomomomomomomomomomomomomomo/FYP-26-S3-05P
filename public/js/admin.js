@@ -212,8 +212,12 @@
 
     host.appendChild(el('div', { class: 'panel-head' }, [
       el('h3', { style: { fontSize: '.95rem' } }, ['Catalogue']),
-      el('button', { class: 'btn btn-primary btn-sm', onclick: () => openContentEditor(null) },
-        ['Add a title']),
+      el('div', { class: 'row' }, [
+        el('button', { class: 'btn btn-outline btn-sm', onclick: openImportDialog },
+          ['Bulk import']),
+        el('button', { class: 'btn btn-primary btn-sm', onclick: () => openContentEditor(null) },
+          ['Add a title']),
+      ]),
     ]));
 
     const data = await global.api.get('/api/content', { limit: 60, sort: 'title' });
@@ -282,6 +286,10 @@
       type: 'text', placeholder: 'https://… (optional)',
       value: existing ? existing.external_link || '' : '',
     });
+    const preview = el('input', {
+      type: 'text', placeholder: 'https://… (optional)',
+      value: existing ? existing.preview_url || '' : '',
+    });
 
     const selected = new Set(existing ? existing.tags || [] : []);
     const chips = el('div', { class: 'chips' }, allTags.map((tag) => {
@@ -310,6 +318,8 @@
         field('Cover image URL', cover, 'Leave blank to use a generated cover.'),
       ]),
       field('External link', link),
+      field('Preview or trailer link', preview,
+        'Anyone may open this, including visitors who have not signed in.'),
       el('div', { class: 'field' }, [el('label', { text: 'Tags' }), chips]),
     ]);
 
@@ -329,6 +339,7 @@
             duration_minutes: duration.value === '' ? null : Number(duration.value),
             cover_image_url: cover.value,
             external_link: link.value,
+            preview_url: preview.value,
             tags: Array.from(selected),
           };
           try {
@@ -344,6 +355,219 @@
         },
       }, [isNew ? 'Add to library' : 'Save']),
     ]);
+  }
+
+  // --- bulk import ----------------------------------------------------------
+  const IMPORT_HEADER = 'content_type,title,description,author_creator,age_rating,'
+    + 'reading_level,language,duration_minutes,cover_image_url,external_link,preview_url,tags';
+  const IMPORT_EXAMPLE = `${IMPORT_HEADER}
+BOOK,The Paper Boat,A boat folded from a letter sails to the sea.,Ada Rennick,6,BEGINNER,English,18,,,,Adventure|Nature
+VIDEO,How Bees Talk,Eight minutes on the waggle dance.,Orbit Academy,7,BEGINNER,English,8,,,,Animals|Science`;
+
+  /** Renders the per-row outcome of an import, dry run or real. */
+  function renderImportResult(res, slot) {
+    clear(slot);
+    const lines = [];
+    if (res.dry_run) {
+      lines.push(`${res.created.length} title${res.created.length === 1 ? '' : 's'} ready to import.`);
+    } else {
+      lines.push(`${res.imported} title${res.imported === 1 ? '' : 's'} added.`);
+    }
+    if (res.skipped.length) lines.push(`${res.skipped.length} skipped (already in the library).`);
+    if (res.failed.length) lines.push(`${res.failed.length} could not be read.`);
+
+    const kind = res.failed.length ? 'alert-warn' : 'alert-ok';
+    slot.appendChild(el('div', { class: `alert ${kind}`, text: lines.join(' ') }));
+
+    if (res.failed.length) {
+      slot.appendChild(el('div', { class: 'table-scroll' }, el('table', {}, [
+        el('thead', {}, el('tr', {}, [
+          el('th', { text: 'Line' }), el('th', { text: 'Title' }), el('th', { text: 'Problem' }),
+        ])),
+        el('tbody', {}, res.failed.map((f) => el('tr', {}, [
+          el('td', { class: 'small', text: String(f.line) }),
+          el('td', { class: 'small', text: f.title || '—' }),
+          el('td', { class: 'small muted', text: f.error }),
+        ]))),
+      ])));
+    }
+    if (res.skipped.length) {
+      slot.appendChild(el('p', { class: 'tiny muted', text: `Skipped: ${
+        res.skipped.map((k) => k.title).join(', ')}` }));
+    }
+  }
+
+  /**
+   * Paste a spreadsheet export, check it, then load it. Rows are validated one
+   * at a time server-side, so one bad line does not cost you the other 199.
+   */
+  function openImportDialog() {
+    const csv = el('textarea', {
+      rows: '9', placeholder: IMPORT_EXAMPLE,
+      style: { fontFamily: 'var(--mono, ui-monospace, monospace)', fontSize: '.78rem' },
+    });
+    const file = el('input', { type: 'file', accept: '.csv,text/csv,text/plain' });
+    file.addEventListener('change', () => {
+      const chosen = file.files && file.files[0];
+      if (!chosen) return;
+      const reader = new FileReader();
+      reader.onload = () => { csv.value = String(reader.result || ''); };
+      reader.readAsText(chosen);
+    });
+
+    const skipDuplicates = el('input', { type: 'checkbox', checked: true });
+    const slot = el('div');
+
+    async function send(dryRun, button) {
+      if (!csv.value.trim()) {
+        clear(slot);
+        slot.appendChild(el('div', { class: 'alert alert-error', text: 'Paste some rows first.' }));
+        return;
+      }
+      button.disabled = true;
+      try {
+        const res = await global.api.post('/api/admin/content/import', {
+          csv: csv.value,
+          dry_run: dryRun,
+          skip_duplicates: skipDuplicates.checked,
+        });
+        renderImportResult(res, slot);
+        if (!dryRun && res.imported) {
+          toast(`Imported ${res.imported} title${res.imported === 1 ? '' : 's'}.`, 'ok');
+          loadContent();
+        }
+      } catch (err) {
+        clear(slot);
+        slot.appendChild(el('div', { class: 'alert alert-error', text: err.message }));
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    const body = el('div', { class: 'form-grid' }, [
+      el('p', { class: 'muted small', style: { margin: 0 } }, [
+        'One title per line, with a header row. Separate several tags with a '
+        + 'vertical bar. Only content_type and title are required.',
+      ]),
+      el('div', { class: 'field' }, [
+        el('label', { text: 'Choose a CSV file' }), file,
+      ]),
+      el('div', { class: 'field' }, [
+        el('label', { text: '…or paste the rows' }), csv,
+      ]),
+      el('label', { class: 'checkbox' }, [
+        skipDuplicates,
+        el('span', { text: 'Skip titles that are already in the library' }),
+      ]),
+      slot,
+    ]);
+
+    const dialog = modal('Bulk import titles', body, [
+      el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Close']),
+      el('button', {
+        class: 'btn', onclick: (e) => send(true, e.currentTarget),
+      }, ['Check it first']),
+      el('button', {
+        class: 'btn btn-primary', onclick: (e) => send(false, e.currentTarget),
+      }, ['Import']),
+    ]);
+  }
+
+  // --- categories -----------------------------------------------------------
+  const CATEGORY_KINDS = [['GENRE', 'Genre'], ['THEME', 'Theme'], ['TOPIC', 'Topic']];
+
+  /**
+   * The tag vocabulary behind the library filters. Renaming one here renames it
+   * everywhere, because titles point at the tag rather than a copy of its name.
+   */
+  async function loadCategories() {
+    const host = panel('categories');
+    clear(host);
+
+    host.appendChild(el('div', { class: 'panel-head' }, [
+      el('h3', { style: { fontSize: '.95rem' } }, ['Categories']),
+      el('button', { class: 'btn btn-primary btn-sm', onclick: () => openCategoryEditor(null) },
+        ['Add a category']),
+    ]));
+
+    const data = await global.api.get('/api/content/tags');
+    allTags = data.items;
+
+    const rows = data.items.map((tag) => el('tr', {}, [
+      el('td', {}, [el('a', {
+        href: `/library?tag=${encodeURIComponent(tag.tag_name)}`, text: tag.tag_name,
+      })]),
+      el('td', {}, [el('span', { class: 'pill', text: tag.category })]),
+      el('td', { class: 'small muted', text: `${tag.content_count} title${tag.content_count === 1 ? '' : 's'}` }),
+      el('td', { class: 'actions' }, [
+        el('button', {
+          class: 'btn btn-sm btn-outline', onclick: () => openCategoryEditor(tag),
+        }, ['Edit']),
+        el('button', {
+          class: 'btn btn-sm btn-danger',
+          onclick: () => confirmDialog(`Delete "${tag.tag_name}"?`,
+            tag.content_count
+              ? `${tag.content_count} title${tag.content_count === 1 ? '' : 's'} will lose this tag. `
+                + 'The titles themselves stay in the library.'
+              : 'Nothing uses it, so nothing else changes.',
+            async () => {
+              try {
+                await global.api.del(`/api/admin/tags/${tag.tag_id}`);
+                toast('Deleted.', 'ok');
+                loadCategories();
+              } catch (err) { showError(err); }
+            }),
+        }, ['Delete']),
+      ]),
+    ]));
+
+    host.appendChild(el('div', { class: 'panel' },
+      table(['Name', 'Kind', 'Used by', ''], rows)));
+    host.appendChild(el('p', { class: 'tiny muted' }, [
+      'Genres and topics are what a child sees on their library page; themes are '
+      + 'kept for grown-ups and the Story Chat. A genre can also be blocked per '
+      + 'child from the Family page.',
+    ]));
+  }
+
+  function openCategoryEditor(existing) {
+    const isNew = !existing;
+    const name = el('input', {
+      type: 'text', maxlength: '100', value: existing ? existing.tag_name : '',
+    });
+    const kind = el('select', {}, CATEGORY_KINDS.map(([value, label]) => el('option', {
+      value, text: label,
+    })));
+    if (existing) kind.value = existing.category;
+
+    const dialog = modal(isNew ? 'Add a category' : `Edit "${existing.tag_name}"`,
+      el('div', { class: 'form-grid' }, [
+        field('Name', name),
+        field('Kind', kind, 'Genres and topics show on the children\u2019s library page.'),
+      ]), [
+        el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Cancel']),
+        el('button', {
+          class: 'btn btn-primary',
+          onclick: async (event) => {
+            event.currentTarget.disabled = true;
+            try {
+              if (isNew) {
+                await global.api.post('/api/admin/tags',
+                  { tag_name: name.value, category: kind.value });
+              } else {
+                await global.api.patch(`/api/admin/tags/${existing.tag_id}`,
+                  { tag_name: name.value, category: kind.value });
+              }
+              dialog.close();
+              toast('Saved.', 'ok');
+              loadCategories();
+            } catch (err) {
+              event.currentTarget.disabled = false;
+              showError(err);
+            }
+          },
+        }, [isNew ? 'Add it' : 'Save']),
+      ]);
   }
 
   // --- reports --------------------------------------------------------------
@@ -513,6 +737,7 @@
     overview: loadOverview,
     users: loadUsers,
     content: loadContent,
+    categories: loadCategories,
     reports: loadReports,
     announcements: loadAnnouncements,
     logs: loadLogs,

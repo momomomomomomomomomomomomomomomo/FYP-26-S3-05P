@@ -68,6 +68,18 @@ router.post('/register', authLimiter, asyncHandler(async (req, res) => {
   );
 
   const user = await db.queryOne('SELECT * FROM users WHERE user_id = ?', [result.insertId]);
+
+  // Anything this address favourited as a Guest becomes a real favourite, so
+  // browsing before signing up is not wasted.
+  const carried = await db.execute(
+    `INSERT IGNORE INTO saved_content (user_id, content_id, list_type)
+     SELECT ?, content_id, 'FAVORITE' FROM guest_favourites WHERE email = ?`,
+    [user.user_id, email],
+  );
+  if (carried.affectedRows) {
+    await db.execute('DELETE FROM guest_favourites WHERE email = ?', [email]);
+  }
+
   await audit.log({
     userId: user.user_id,
     actorRole: 'ADULT',
@@ -78,7 +90,10 @@ router.post('/register', authLimiter, asyncHandler(async (req, res) => {
   });
 
   setAuthCookie(res, signToken(user));
-  res.status(201).json({ user: publicUser(user) });
+  res.status(201).json({
+    user: publicUser(user),
+    carried_favourites: Number(carried.affectedRows || 0),
+  });
 }));
 
 // -----------------------------------------------------------------------------

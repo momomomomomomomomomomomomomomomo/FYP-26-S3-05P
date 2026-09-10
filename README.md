@@ -24,8 +24,10 @@ npm start                # http://localhost:3000
 
 | | Guest | Child | Adult | Administrator |
 |---|---|---|---|---|
-| Browse the library | whole catalogue | **filtered by their parent** | ✅ | ✅ |
-| Favourites, watchlist, progress, badges | — | ✅ | ✅ | ✅ |
+| Browse the library | whole catalogue | **filtered by their parent**, simplified | ✅ | ✅ |
+| Preview a title before opening it | ✅ | ✅ | ✅ | ✅ |
+| Favourites, watchlist, progress, badges | favourites by email | ✅ | ✅ | ✅ |
+| React to a title with an emoji | — | ✅ | ✅ | ✅ |
 | Story Chat | — | ✅ (filtered) | ✅ | ✅ |
 | Ask to unlock a blocked title | — | ✅ | — | — |
 | Create and manage child accounts | — | — | **their own children** | all |
@@ -50,17 +52,24 @@ If `parental_controls.allow_content` is off, only approved titles appear.
 
 ## Features
 
-- **Library** — search, filter by format, genre, reading level and age, sort;
-  book and video titles with generated cover art (no image files needed).
+- **Library** — search titles, blurbs, authors *and* topics, filter by format,
+  genre, reading level and age, sort; book and video titles with generated cover
+  art (no image files needed). Every cover offers a **preview** — the blurb, the
+  opening lines and a trailer link if one is set — which a Guest may open too.
+  Children get the same catalogue with a **simplified view**: no sort or level
+  menus, big topic chips, and their grown-up's filter still applied.
 - **Story Chat** — an offline, rules-based recommender that searches the
   library. It respects the same parental filter as everything else, and it will
   not claim to have found a genre it did not find.
 - **Reading** — progress tracking, favourites, watchlist, reviews and ratings,
-  seven automatic badges.
+  one-tap **emoji reactions** for readers who would rather not write, and seven
+  automatic badges. Visitors without an account can favourite against an email
+  address; those favourites move into the account when that address registers.
 - **Family page** (adults) — create child accounts with a login ID instead of an
   email, set age limits, blocked genres and daily screen time, approve or refuse
   unlock requests, and read each child's activity.
-- **Administration** — every account, the catalogue, reported content,
+- **Administration** — every account, the catalogue (including **bulk CSV
+  import** and the **category vocabulary** behind the filters), reported content,
   site-wide announcements, and the full audit trail.
 
 ## Stack
@@ -72,7 +81,7 @@ server — no build step, no framework, no bundler.
 ## Layout
 
 ```
-database/   schema.sql (20 tables) and seed.sql (sample library)
+database/   schema.sql (22 tables) and seed.sql (sample library)
 scripts/    setup-db.js — one command to build the database
 server/     Express app: config, db pool, middleware, routes, access rules
 public/     the front end: one HTML file and one JS file per page
