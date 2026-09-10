@@ -106,7 +106,7 @@ npm run db:setup
 
 This one command:
 
-1. creates the `storynest` database and all 20 tables (`database/schema.sql`),
+1. creates the `storynest` database and all 22 tables (`database/schema.sql`),
 2. loads 24 sample titles, 18 tags and 7 badges (`database/seed.sql`),
 3. creates the demo accounts and the per-role test accounts, with passwords
    hashed using bcrypt.
@@ -223,7 +223,7 @@ mysql -u root -p storynest -e "SELECT user_id, role, name, email FROM users;"
 ```
 storynest/
 ├── database/
-│   ├── schema.sql          # all 20 tables — drops and recreates the database
+│   ├── schema.sql          # all 22 tables — drops and recreates the database
 │   └── seed.sql            # sample titles, tags and badges
 ├── scripts/
 │   └── setup-db.js         # runs both SQL files, then creates the accounts
@@ -236,11 +236,11 @@ storynest/
 │   │   └── error.js        # turns thrown errors into clean JSON
 │   ├── routes/
 │   │   ├── auth.js         # register, login, logout, own profile
-│   │   ├── content.js      # library, search, one title, progress, reviews
+│   │   ├── content.js      # library, search, previews, reactions, progress, reviews
 │   │   ├── me.js           # favourites, watchlist, badges, notifications, requests
 │   │   ├── children.js     # adult: child accounts, parental controls, requests
 │   │   ├── chat.js         # Story Chat sessions and messages
-│   │   └── admin.js        # users, catalogue, reports, announcements, audit log
+│   │   └── admin.js        # users, catalogue, bulk import, categories, reports, logs
 │   └── utils/
 │       ├── access.js       # who may see what — the parental-control rules
 │       ├── chatbot.js      # the offline Story Chat recommender
@@ -267,8 +267,10 @@ storynest/
 
 | | Guest | Child | Adult | Administrator |
 |---|---|---|---|---|
-| Browse the library | ✅ whole catalogue | ✅ **filtered by their parent** | ✅ | ✅ |
-| Save favourites, track progress, earn badges | ❌ | ✅ | ✅ | ✅ |
+| Browse the library | ✅ whole catalogue | ✅ **filtered by their parent**, simplified view | ✅ | ✅ |
+| Preview a title (blurb, opening lines, trailer) | ✅ | ✅ | ✅ | ✅ |
+| Save favourites, track progress, earn badges | ✅ favourites, against an email | ✅ | ✅ | ✅ |
+| React to a title with one emoji | ❌ | ✅ | ✅ | ✅ |
 | Story Chat | ❌ | ✅ (filtered) | ✅ | ✅ |
 | Ask to unlock a blocked title | — | ✅ | — | — |
 | Create and manage child accounts | ❌ | ❌ | ✅ **their own children only** | ✅ all |

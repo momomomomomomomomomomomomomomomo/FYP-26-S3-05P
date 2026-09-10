@@ -3,7 +3,10 @@
    "ask a grown-up" request flow starts. */
 (function contentPage(global) {
   'use strict';
-  const { el, $, clear, card, fmt, modal, toast, showError, emptyState } = global.SN;
+  const {
+    el, $, clear, card, fmt, modal, toast, showError, emptyState,
+    previewDialog, guestFavouriteDialog,
+  } = global.SN;
 
   const contentId = Number(new URLSearchParams(global.location.search).get('id'));
   let item = null;
@@ -57,7 +60,10 @@
   // --- saved lists ----------------------------------------------------------
   async function toggleSave(listType, button) {
     if (!global.SN.user) {
-      global.location.href = `/login?next=${encodeURIComponent(`/content?id=${contentId}`)}`;
+      // No account yet: favourites can be kept against an email address, and
+      // a watchlist still needs a real account.
+      if (listType === 'FAVORITE' && item) guestFavouriteDialog(item);
+      else global.location.href = `/login?next=${encodeURIComponent(`/content?id=${contentId}`)}`;
       return;
     }
     const isOn = button.dataset.on === 'true';
@@ -82,6 +88,51 @@
     }
     button.classList.toggle('btn-primary', on);
     button.classList.toggle('btn-outline', !on);
+  }
+
+  // --- reactions ------------------------------------------------------------
+  /**
+   * One tap, one emoji. This is how a child leaves an opinion: no writing, and
+   * tapping the same face again takes it back.
+   */
+  function renderReactions(reactions) {
+    const host = $('#reactions');
+    if (!host || !reactions) return;
+    clear(host);
+    $('#reactionsSection').classList.remove('hidden');
+
+    const signedIn = !!global.SN.user;
+    host.appendChild(el('div', { class: 'reactions' }, reactions.options.map((option) => {
+      const button = el('button', {
+        class: `reaction ${reactions.mine === option.emoji ? 'on' : ''}`.trim(),
+        type: 'button',
+        title: option.label,
+        'aria-label': `${option.label} (${option.count})`,
+        'aria-pressed': String(reactions.mine === option.emoji),
+        onclick: async () => {
+          if (!signedIn) {
+            global.location.href = `/login?next=${encodeURIComponent(`/content?id=${contentId}`)}`;
+            return;
+          }
+          try {
+            const res = await global.api.put(`/api/content/${contentId}/reaction`,
+              { emoji: option.emoji });
+            renderReactions(res.reactions);
+          } catch (err) {
+            showError(err);
+          }
+        },
+      }, [
+        el('span', { class: 'reaction-emoji', text: option.emoji }),
+        el('span', { class: 'small', text: option.label }),
+        option.count ? el('span', { class: 'reaction-count', text: String(option.count) }) : null,
+      ]);
+      return button;
+    })));
+
+    host.appendChild(el('p', { class: 'tiny muted', style: { margin: '8px 0 0' }, text: reactions.total
+      ? `${reactions.total} reader${reactions.total === 1 ? '' : 's'} reacted to this.`
+      : 'Be the first to react.' }));
   }
 
   // --- main render ----------------------------------------------------------
@@ -122,6 +173,11 @@
     setSaveLabel(watchBtn, 'WATCHLIST', !!item.in_watchlist);
     watchBtn.addEventListener('click', () => toggleSave('WATCHLIST', watchBtn));
     actions.appendChild(watchBtn);
+
+    actions.appendChild(el('button', {
+      class: 'btn btn-outline', type: 'button', text: '\u25b6 Preview',
+      onclick: () => previewDialog(item),
+    }));
 
     if (global.SN.user) {
       actions.appendChild(el('button', {
@@ -254,6 +310,7 @@
       document.title = `${item.title} — StoryNest`;
 
       renderDetail();
+      renderReactions(data.reactions);
       renderReviews(data.reviews);
 
       if (data.related.length) {

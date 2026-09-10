@@ -215,6 +215,23 @@ async function run() {
     [parentId],
   );
 
+  // A couple of reactions so "How was it?" is not empty on a fresh install.
+  await conn.execute(
+    `INSERT INTO content_reactions (user_id, content_id, emoji)
+     SELECT ?, content_id, '\u{1F602}' FROM content WHERE title = 'The Dinosaur Who Was Late'`,
+    [leoId],
+  );
+  await conn.execute(
+    `INSERT INTO content_reactions (user_id, content_id, emoji)
+     SELECT ?, content_id, '\u{1F60D}' FROM content WHERE title = 'Moonboots'`,
+    [leoId],
+  );
+  await conn.execute(
+    `INSERT INTO content_reactions (user_id, content_id, emoji)
+     SELECT ?, content_id, '\u{1F914}' FROM content WHERE title = 'The Keeper of Lost Kites'`,
+    [adaId],
+  );
+
   await conn.execute(
     `INSERT INTO announcements (title, message, user_id)
      VALUES ('Welcome to StoryNest', 'New titles are added every week. Happy reading!', ?)`,

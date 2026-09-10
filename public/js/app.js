@@ -57,6 +57,8 @@
     SCREEN_TIME: 'Screen time',
     REPORT: 'Reported something',
     REPORT_DECISION: 'Decided on a report',
+    REACTION: 'Reacted to a title',
+    CONTENT_IMPORT: 'Bulk imported titles',
     CONTENT_CREATE: 'Added a title',
     CONTENT_UPDATE: 'Edited a title',
     CONTENT_DELETE: 'Removed a title',
@@ -143,6 +145,130 @@
     return box;
   }
 
+  // --- guest favourites ----------------------------------------------------
+  // A Guest has no account, so a favourite is kept against an email address.
+  // The address is remembered in this browser only, to save re-typing it.
+  const GUEST_EMAIL_KEY = 'sn_guest_email';
+
+  function guestEmail() {
+    try { return global.localStorage.getItem(GUEST_EMAIL_KEY) || ''; } catch (err) { return ''; }
+  }
+  function rememberGuestEmail(value) {
+    try { global.localStorage.setItem(GUEST_EMAIL_KEY, value); } catch (err) { /* private mode */ }
+  }
+
+  /**
+   * Asks a Guest for an email address and favourites a title against it. The
+   * rows become real favourites the moment that address registers.
+   */
+  function guestFavouriteDialog(item, onSaved) {
+    const input = el('input', {
+      type: 'email', placeholder: 'you@example.com', value: guestEmail(),
+      'aria-label': 'Your email address',
+    });
+    const slot = el('div');
+
+    const dialog = modal(`Save "${item.title}" for later`, el('div', { class: 'form-grid' }, [
+      el('p', { class: 'muted small', style: { margin: 0 } }, [
+        'You do not need an account. Give us an email address and we will keep your '
+        + 'favourites against it - when you register with the same address they move '
+        + 'into your new account.',
+      ]),
+      el('div', { class: 'field' }, [el('label', { text: 'Email' }), input]),
+      slot,
+    ]), [
+      el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Cancel']),
+      el('button', {
+        class: 'btn btn-primary',
+        onclick: async (event) => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          clear(slot);
+          try {
+            const res = await global.api.post(
+              `/api/content/${item.content_id}/guest-favourite`, { email: input.value.trim() },
+            );
+            rememberGuestEmail(input.value.trim().toLowerCase());
+            dialog.close();
+            toast(`Saved. You have ${res.saved_count} favourite${res.saved_count === 1 ? '' : 's'}.`, 'ok');
+            if (onSaved) onSaved(res);
+          } catch (err) {
+            button.disabled = false;
+            slot.appendChild(el('div', { class: 'alert alert-error', text: err.message }));
+          }
+        },
+      }, ['Save it']),
+    ]);
+    input.focus();
+    return dialog;
+  }
+
+  // --- previews ------------------------------------------------------------
+  /**
+   * The few lines a Guest is allowed to see before opening anything: the blurb
+   * plus the opening of the demo reader for a book. Mirrors read.js so a
+   * preview reads like the first page of the real thing.
+   */
+  function sampleParagraphs(item) {
+    const lead = item.description || 'A story is waiting for you here.';
+    if (item.content_type === 'VIDEO') {
+      return [lead, `A ${fmt.duration(item.duration_minutes) || 'short'} video${
+        item.author_creator ? ` from ${item.author_creator}` : ''}. Press play to watch the whole thing.`];
+    }
+    return [lead, `The opening pages of "${item.title}" would start here. `
+      + 'Open the book to read it properly - your place is saved as you go.'];
+  }
+
+  /** A read-only look at a title. Open to everyone, Guests included. */
+  function previewDialog(item) {
+    const meta = [
+      fmt.ages(item),
+      item.content_type === 'VIDEO' ? 'Video' : 'Book',
+      fmt.duration(item.duration_minutes),
+      item.reading_level ? fmt.level(item.reading_level) : null,
+    ].filter(Boolean).join(' \u00b7 ');
+
+    const body = el('div', { class: 'preview' }, [
+      el('div', { class: 'preview-head' }, [
+        el('div', { class: 'preview-cover' }, [coverEl(item)]),
+        el('div', {}, [
+          el('div', { class: 'card-meta', text: meta }),
+          item.author_creator ? el('div', { class: 'small muted', text: `by ${item.author_creator}` }) : null,
+          (item.tags && item.tags.length)
+            ? el('div', { class: 'chips', style: { marginTop: '8px' } },
+              item.tags.slice(0, 4).map((t) => el('span', { class: 'chip static', text: t })))
+            : null,
+        ]),
+      ]),
+      el('div', { class: 'preview-sample' },
+        sampleParagraphs(item).map((para) => el('p', { text: para }))),
+      item.preview_url
+        ? el('a', {
+          class: 'btn btn-outline btn-sm', href: item.preview_url,
+          target: '_blank', rel: 'noopener noreferrer',
+          text: item.content_type === 'VIDEO' ? 'Watch the trailer \u2197' : 'Read a sample \u2197',
+        })
+        : el('p', { class: 'tiny muted', text: 'No trailer has been added for this title yet.' }),
+    ]);
+
+    const footer = [
+      el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Close']),
+    ];
+    if (!state.user) {
+      footer.push(el('button', {
+        class: 'btn',
+        onclick: () => { dialog.close(); guestFavouriteDialog(item); },
+      }, ['\u2606 Save with my email']));
+    }
+    footer.push(el('a', {
+      class: 'btn btn-primary', href: `/content?id=${item.content_id}`,
+      text: item.content_type === 'VIDEO' ? 'Go to the video' : 'Go to the book',
+    }));
+
+    const dialog = modal(item.title, body, footer);
+    return dialog;
+  }
+
   /** One cover card, as used on the home page and throughout the library. */
   function card(item, opts) {
     const options = opts || {};
@@ -161,8 +287,27 @@
       body.appendChild(el('div', { class: 'tiny muted', text: pct >= 100 ? 'Finished' : `${pct}% read` }));
     }
 
-    return el('a', { class: 'card', href: `/content?id=${item.content_id}` },
+    const link = el('a', { class: 'card', href: `/content?id=${item.content_id}` },
       [coverEl(item, options), body]);
+
+    if (options.preview === false) return link;
+
+    // A button cannot live inside an <a>, so the card is wrapped and the
+    // preview control is positioned over the cover.
+    return el('div', { class: 'card-wrap' }, [
+      link,
+      el('button', {
+        class: 'card-preview',
+        type: 'button',
+        title: `Preview "${item.title}"`,
+        'aria-label': `Preview ${item.title}`,
+        onclick: (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          previewDialog(item);
+        },
+      }, ['\u25b6 Preview']),
+    ]);
   }
 
   function skeletonGrid(count, target) {
@@ -433,6 +578,7 @@
   global.SN = {
     el, $, $$, clear, fmt, card, coverEl, coverStyle, skeletonGrid, emptyState,
     toast, showError, showOk, modal, confirmDialog, init, renderNav, signOut, currentPath,
+    previewDialog, guestFavouriteDialog, guestEmail, sampleParagraphs,
     get user() { return state.user; },
     get scope() { return state.scope; },
     state,
