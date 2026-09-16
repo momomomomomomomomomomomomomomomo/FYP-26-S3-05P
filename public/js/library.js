@@ -167,8 +167,25 @@
       if (!append) clear(grid);
 
       if (!data.items.length && !append) {
-        grid.appendChild(emptyState('📚', 'Nothing here yet',
-          state.q ? `No titles match "${state.q}".` : 'Try clearing the filters.'));
+        // "Try clearing the filters" is wrong - and confusing - when the reason
+        // the shelf is bare is a parental control the reader cannot clear.
+        const scope = global.SN.scope;
+        const paused = scope && scope.restricted && !scope.allowContent;
+        const noFilters = !state.q && !state.type && !state.reading_level
+          && !state.age_max && !state.tags.length;
+
+        if (paused) {
+          grid.appendChild(emptyState('\u23f8\ufe0f', 'Your library is paused',
+            'A grown-up turned off browsing for now. Titles they unlock for you will still '
+            + 'appear here - ask them if you would like something to read.'));
+        } else if (scope && scope.restricted && noFilters) {
+          grid.appendChild(emptyState('\ud83d\udd12', 'Nothing to show yet',
+            'Your grown-up\u2019s settings are hiding everything in the library right now. '
+            + 'Ask them to allow a higher age rating.'));
+        } else {
+          grid.appendChild(emptyState('\ud83d\udcda', 'Nothing here yet',
+            state.q ? `No titles match "${state.q}".` : 'Try clearing the filters.'));
+        }
       }
       data.items.forEach((item) => grid.appendChild(card(item)));
 

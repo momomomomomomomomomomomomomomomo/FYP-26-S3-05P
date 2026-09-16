@@ -105,6 +105,20 @@
     const allow = el('input', { type: 'checkbox' });
     allow.checked = c.allow_content;
 
+    const allowState = el('div', { class: 'tiny' });
+    function paintAllowState() {
+      clear(allowState);
+      allowState.appendChild(allow.checked
+        ? el('span', { class: 'muted', text: `${child.name} can browse the library.` })
+        : el('span', {
+          class: 'alert alert-warn',
+          style: { display: 'block', margin: '6px 0 0' },
+          text: `${child.name}'s library will be empty. Only titles you unlock from a `
+            + 'request will appear, whatever the age rating below says.',
+        }));
+    }
+    allow.addEventListener('change', paintAllowState);
+
     const selected = new Set(c.blocked_genres);
     const chips = el('div', { class: 'chips' }, allTags.map((tag) => {
       const chip = el('button', {
@@ -126,9 +140,15 @@
         + 'from a request stays visible even if it breaks these rules.']),
       field('Highest age rating', maxAge, `${child.name} is ${child.age}. Titles rated above this are hidden.`),
       field('Daily screen time', screenLimit, 'Reading and watching time is counted each day.'),
-      el('label', { class: 'checkbox' }, [
-        allow,
-        el('span', {}, ['Let them browse the library. Turn this off and only titles you unlock will show up.']),
+      el('div', { class: 'field' }, [
+        el('label', { class: 'checkbox' }, [
+          allow,
+          el('span', {}, [
+            el('strong', { text: 'Let them browse the library' }),
+            el('span', { class: 'muted', text: ' — turn this off and only titles you unlock will show up.' }),
+          ]),
+        ]),
+        allowState,
       ]),
       el('div', { class: 'field' }, [
         el('label', { text: 'Blocked genres and topics' }),
@@ -136,6 +156,8 @@
         chips,
       ]),
     ]);
+
+    paintAllowState();
 
     const dialog = modal(`Controls for ${child.name}`, body, [
       el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Cancel']),
@@ -165,11 +187,14 @@
   // --- children tab ---------------------------------------------------------
   function childCard(child) {
     const c = child.controls;
+    // Browsing switched off hides the whole library, so it is stated first and
+    // plainly - the age and genre limits below it are irrelevant while it is off.
     const limits = [
+      c.allow_content ? null : 'browsing is OFF',
       c.max_age === null ? 'any age rating' : `up to age ${c.max_age}`,
       c.daily_screen_limit === null ? 'no time limit' : `${c.daily_screen_limit} min/day`,
       c.blocked_genres.length ? `${c.blocked_genres.length} genre(s) blocked` : 'no blocked genres',
-    ].join(' · ');
+    ].filter(Boolean).join(' · ');
 
     const screenBar = c.daily_screen_limit
       ? el('div', {}, [
@@ -196,6 +221,14 @@
               child.account_status !== 'ACTIVE'
                 ? el('span', { class: 'pill pill-danger', style: { marginLeft: '8px' }, text: 'Suspended' })
                 : null,
+              c.allow_content
+                ? null
+                : el('span', {
+                  class: 'pill pill-warn',
+                  style: { marginLeft: '8px' },
+                  title: 'Their library is empty until you turn browsing back on.',
+                  text: 'Library paused',
+                }),
             ]),
             el('div', { class: 'tiny muted', text: `age ${child.age} · login ID "${child.login_id}"` }),
           ]),
