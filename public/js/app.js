@@ -366,6 +366,27 @@
   }
 
   // --- navigation ----------------------------------------------------------
+  /**
+   * Staff accounts have a workplace, not a library: sending them to the reading
+   * landing page every time costs them a click and shows them nothing they can
+   * act on. Everyone else belongs on the landing page.
+   */
+  const STAFF_HOME = { ADMIN: '/admin', LIBRARIAN: '/librarian' };
+  function homeFor(user) {
+    return (user && STAFF_HOME[user.role]) || '/';
+  }
+
+  /**
+   * Staff run the site; they are not readers on it. They may browse and preview
+   * the catalogue - a librarian has to be able to check their own shelves - but
+   * they have no favourites, progress, badges, reviews or Story Chat, so none of
+   * those controls are shown to them.
+   */
+  function isStaff(user) {
+    const u = user === undefined ? state.user : user;
+    return !!(u && STAFF_HOME[u.role]);
+  }
+
   const NAV_LINKS = [
     { href: '/chat', label: 'Story Chat' },
     { href: '/library', label: 'Library' },
@@ -378,8 +399,12 @@
     if (!host) return;
     clear(host);
 
+    const visibleLinks = isStaff()
+      ? NAV_LINKS.filter((link) => link.href !== '/chat')
+      : NAV_LINKS;
+
     const links = el('nav', { class: 'nav-links', id: 'navLinks' },
-      NAV_LINKS.map((link) => el('a', {
+      visibleLinks.map((link) => el('a', {
         href: link.href,
         text: link.label,
         class: link.href === active ? 'active' : '',
@@ -388,18 +413,24 @@
     const right = el('div', { class: 'nav-right' });
 
     if (state.user) {
-      const bell = el('button', {
-        class: 'bell', title: 'Notifications', 'aria-label': 'Notifications', onclick: toggleNotifications,
-      }, ['🔔']);
-      if (state.unread > 0) {
-        bell.appendChild(el('span', {
-          class: 'bell-dot', text: state.unread > 9 ? '9+' : String(state.unread),
-        }));
+      // Notifications live on the reader's own account, which staff do not have.
+      if (!isStaff()) {
+        const bell = el('button', {
+          class: 'bell', title: 'Notifications', 'aria-label': 'Notifications', onclick: toggleNotifications,
+        }, ['🔔']);
+        if (state.unread > 0) {
+          bell.appendChild(el('span', {
+            class: 'bell-dot', text: state.unread > 9 ? '9+' : String(state.unread),
+          }));
+        }
+        right.appendChild(bell);
       }
-      right.appendChild(bell);
 
       if (state.user.role === 'ADMIN') {
         right.appendChild(el('a', { class: 'btn btn-sm btn-outline', href: '/admin', text: 'Admin' }));
+      }
+      if (state.user.role === 'LIBRARIAN') {
+        right.appendChild(el('a', { class: 'btn btn-sm btn-outline', href: '/librarian', text: 'Catalogue' }));
       }
       if (state.user.role === 'ADULT') {
         right.appendChild(el('a', { class: 'btn btn-sm btn-outline', href: '/parent', text: 'Family' }));
@@ -491,6 +522,7 @@
   // --- floating Story Chat button -----------------------------------------
   function renderChatFab(active) {
     if (active === '/chat' || document.body.dataset.noFab === 'true') return;
+    if (isStaff()) return;
     document.body.appendChild(el('button', {
       class: 'chat-fab', title: 'Open Story Chat', 'aria-label': 'Open Story Chat',
       onclick: () => { global.location.href = '/chat'; },
@@ -578,7 +610,7 @@
   global.SN = {
     el, $, $$, clear, fmt, card, coverEl, coverStyle, skeletonGrid, emptyState,
     toast, showError, showOk, modal, confirmDialog, init, renderNav, signOut, currentPath,
-    previewDialog, guestFavouriteDialog, guestEmail, sampleParagraphs,
+    previewDialog, guestFavouriteDialog, guestEmail, sampleParagraphs, homeFor, isStaff,
     get user() { return state.user; },
     get scope() { return state.scope; },
     state,

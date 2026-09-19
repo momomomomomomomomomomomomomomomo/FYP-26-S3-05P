@@ -45,7 +45,7 @@ async function getApprovedContentIds(childId) {
 /**
  * Everything needed to decide what one viewer may see.
  *
- *   ADMIN / ADULT  - the whole library.
+ *   ADMIN / LIBRARIAN / ADULT  - the whole library (staff browse, never read).
  *   GUEST          - the whole library, read-only (no saving, progress or chat).
  *   CHILD          - filtered by parental controls:
  *                      * allow_content = false  -> only approved titles
@@ -165,7 +165,6 @@ async function loadManagedChild(req, childId) {
     [childId],
   );
   if (!child) throw ApiError.notFound('That child account does not exist.');
-  if (req.user.role === 'ADMIN') return child;
   if (req.user.role === 'ADULT' && (await isParentOf(req.user.user_id, childId))) return child;
   throw ApiError.forbidden('That is not one of your children.');
 }

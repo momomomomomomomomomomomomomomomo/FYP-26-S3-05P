@@ -80,6 +80,23 @@ const requireRole = (...roles) => (req, res, next) => {
 };
 
 /**
+ * Staff accounts are for running the site, not reading on it. An administrator
+ * and a librarian have no reading history, no favourites, no badges and no
+ * Story Chat - so the reader-only routes reject them outright rather than
+ * quietly building up a personal library nobody intended them to have.
+ */
+const requireReader = (req, res, next) => {
+  if (!req.user) return next(ApiError.unauthorized());
+  if (req.user.role !== 'ADULT' && req.user.role !== 'CHILD') {
+    return next(ApiError.forbidden(
+      'Staff accounts do not have a reader profile. Sign in with a family account to read, '
+      + 'save favourites or use Story Chat.',
+    ));
+  }
+  return next();
+};
+
+/**
  * Works out what this viewer is allowed to see and hangs it on req.scope.
  * Guests and signed-out visitors get an unrestricted, read-only scope.
  */
@@ -90,5 +107,5 @@ const attachScope = asyncHandler(async (req, res, next) => {
 
 module.exports = {
   signToken, setAuthCookie, clearAuthCookie,
-  attachUser, requireAuth, requireRole, attachScope,
+  attachUser, requireAuth, requireRole, requireReader, attachScope,
 };

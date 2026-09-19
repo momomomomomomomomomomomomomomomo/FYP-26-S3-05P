@@ -22,6 +22,7 @@ const ROOT = path.join(__dirname, '..');
 
 const DEMO_PASSWORDS = {
   admin: 'Admin123!',
+  librarian: 'Librarian123!',
   adult: 'Parent123!',
   child: 'storynest1',
 };
@@ -31,6 +32,7 @@ const DEMO_PASSWORDS = {
 // are the known-good logins to test each role against.
 const TEST_PASSWORDS = {
   admin: 'TestAdmin123!',
+  librarian: 'TestLibrarian123!',
   adult: 'TestParent123!',
   child: 'testkid1',
 };
@@ -94,8 +96,9 @@ async function run() {
   say('3/3  Creating demo and test accounts ...');
   await conn.changeUser({ database: config.db.database });
 
-  const [adminHash, adultHash, childHash] = await Promise.all([
+  const [adminHash, librarianHash, adultHash, childHash] = await Promise.all([
     bcrypt.hash(DEMO_PASSWORDS.admin, 12),
+    bcrypt.hash(DEMO_PASSWORDS.librarian, 12),
     bcrypt.hash(DEMO_PASSWORDS.adult, 12),
     bcrypt.hash(DEMO_PASSWORDS.child, 12),
   ]);
@@ -110,6 +113,8 @@ async function run() {
   }
 
   const adminId = await addUser('ADMIN', 'Site Administrator', 'admin@storynest.local', adminHash, '1985-03-12');
+  const librarianId = await addUser('LIBRARIAN', 'Nora Bexley', 'librarian@storynest.local',
+    librarianHash, '1987-09-04');
   const parentId = await addUser('ADULT', 'Maya Tan', 'parent@storynest.local', adultHash, '1990-07-02');
   const parent2Id = await addUser('ADULT', 'Daniel Ortiz', 'daniel@storynest.local', adultHash, '1988-11-23');
 
@@ -142,13 +147,16 @@ async function run() {
   // ---------------------------------------------------------------------------
   // Test accounts - ADMIN, ADULT and CHILD, one each.
   // ---------------------------------------------------------------------------
-  const [testAdminHash, testAdultHash, testChildHash] = await Promise.all([
+  const [testAdminHash, testLibrarianHash, testAdultHash, testChildHash] = await Promise.all([
     bcrypt.hash(TEST_PASSWORDS.admin, 12),
+    bcrypt.hash(TEST_PASSWORDS.librarian, 12),
     bcrypt.hash(TEST_PASSWORDS.adult, 12),
     bcrypt.hash(TEST_PASSWORDS.child, 12),
   ]);
 
   await addUser('ADMIN', 'Test Admin', 'test.admin@storynest.local', testAdminHash, '1990-05-20');
+  await addUser('LIBRARIAN', 'Test Librarian', 'test.librarian@storynest.local',
+    testLibrarianHash, '1991-02-14');
   const testParentId = await addUser('ADULT', 'Test Parent', 'test.parent@storynest.local', testAdultHash, thisYearMinus(38));
   const testChildId = await addUser('CHILD', 'Test Kid', 'testkid', testChildHash, thisYearMinus(9), 'INTERMEDIATE');
 
@@ -164,8 +172,8 @@ async function run() {
     [testChildId],
   );
 
-  // Everything in the sample library was catalogued by the administrator.
-  await conn.execute('UPDATE content SET created_by = ? WHERE created_by IS NULL', [adminId]);
+  // The catalogue is the librarian's work, so the sample library is theirs.
+  await conn.execute('UPDATE content SET created_by = ? WHERE created_by IS NULL', [librarianId]);
 
   // A little history so the home page shelf and the ratings are not empty.
   await conn.execute(
@@ -232,6 +240,23 @@ async function run() {
     [adaId],
   );
 
+  // The parent landing page reads audit_logs, and the history above was written
+  // straight into the tables, so give it matching entries to show.
+  const activity = [
+    [leoId, parentId, 'CONTENT_COMPLETE', 'Finished a title', 'Moonboots'],
+    [leoId, parentId, 'FEEDBACK', 'Reviewed a title (5/5)', 'The Dinosaur Who Was Late'],
+    [leoId, parentId, 'CONTENT_REQUEST', 'Asked to unlock a title', 'Detective Duckling'],
+    [adaId, parentId, 'CONTENT_OPEN', 'Opened a title', 'The Keeper of Lost Kites'],
+    [samId, parent2Id, 'CONTENT_OPEN', 'Opened a title', 'Bedtime Lullabies'],
+  ];
+  for (const [childId, parentOf, type, description, title] of activity) {
+    await conn.execute(
+      `INSERT INTO audit_logs (user_id, parent_id, content_id, actor_role, activity_type, description)
+       SELECT ?, ?, content_id, 'CHILD', ?, ? FROM content WHERE title = ?`,
+      [childId, parentOf, type, description, title],
+    );
+  }
+
   await conn.execute(
     `INSERT INTO announcements (title, message, user_id)
      VALUES ('Welcome to StoryNest', 'New titles are added every week. Happy reading!', ?)`,
@@ -251,6 +276,7 @@ async function run() {
   say('Demo sign-ins');
   say('-------------');
   say(`  Administrator  admin@storynest.local   /  ${DEMO_PASSWORDS.admin}`);
+  say(`  Librarian      librarian@storynest.local  /  ${DEMO_PASSWORDS.librarian}  (the catalogue)`);
   say(`  Adult          parent@storynest.local  /  ${DEMO_PASSWORDS.adult}   (Leo + Ada)`);
   say(`  Adult          daniel@storynest.local  /  ${DEMO_PASSWORDS.adult}   (Sam)`);
   say(`  Child          leo                     /  ${DEMO_PASSWORDS.child}   (age 8, no mysteries)`);
@@ -259,6 +285,7 @@ async function run() {
   say('\nTest accounts (one per role, no restrictions)');
   say('---------------------------------------------');
   say(`  Administrator  test.admin@storynest.local   /  ${TEST_PASSWORDS.admin}`);
+  say(`  Librarian      test.librarian@storynest.local  /  ${TEST_PASSWORDS.librarian}`);
   say(`  Adult          test.parent@storynest.local  /  ${TEST_PASSWORDS.adult}   (Test Kid)`);
   say(`  Child          testkid                      /  ${TEST_PASSWORDS.child}         (age 9)`);
   say('\nChange these before showing the app to anyone outside your team.');

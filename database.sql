@@ -227,7 +227,7 @@ CREATE TABLE audit_logs (
     user_id BIGINT NOT NULL,
     parent_id BIGINT NULL,
     content_id BIGINT NULL,
-    actor_role ENUM('ADULT', 'CHILD', 'ADMIN') NOT NULL,
+    actor_role ENUM('ADULT', 'CHILD', 'ADMIN', 'LIBRARIAN') NOT NULL,
     activity_type VARCHAR(50) NOT NULL,
     description TEXT NULL,
     target_table VARCHAR(100) NULL,

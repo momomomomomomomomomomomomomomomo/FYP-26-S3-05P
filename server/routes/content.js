@@ -8,7 +8,7 @@ const audit = require('../utils/audit');
 const badges = require('../utils/badges');
 const { ApiError, asyncHandler } = require('../utils/errors');
 const { contentScopeClause, assertScreenTimeRemaining, ageFromDob } = require('../utils/access');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireReader } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -240,6 +240,50 @@ router.get('/tags', asyncHandler(async (req, res) => {
 }));
 
 // -----------------------------------------------------------------------------
+// GET /api/content/reviews/recent  - what readers have been saying
+// Feeds the landing-page carousel, so it is open to Guests. It still runs
+// through the viewer's scope: a child never reads a review of a title their
+// grown-up has hidden from them.
+// -----------------------------------------------------------------------------
+router.get('/reviews/recent', asyncHandler(async (req, res) => {
+  const scoped = contentScopeClause(req.scope, 'c');
+  const limit = v.limit(req.query.limit, 8, 20);
+
+  const rows = await db.query(
+    `SELECT f.feedback_id, f.rating, f.review, f.created_at,
+            u.name AS author, u.role AS author_role,
+            c.content_id, c.title, c.content_type, c.author_creator,
+            c.cover_image_url, c.age_rating
+       FROM feedback f
+       JOIN users u ON u.user_id = f.user_id
+       JOIN content c ON c.content_id = f.content_id
+      WHERE f.status = 'ACTIVE' AND f.rating IS NOT NULL
+        AND CHAR_LENGTH(f.review) >= 12${scoped.clause}
+      ORDER BY f.created_at DESC, f.feedback_id DESC
+      LIMIT ${limit}`,
+    scoped.params,
+  );
+
+  res.json({
+    items: rows.map((r) => ({
+      feedback_id: Number(r.feedback_id),
+      rating: Number(r.rating),
+      review: r.review,
+      created_at: r.created_at,
+      // Reviews are public, so only a first name is ever published.
+      author: String(r.author || '').split(' ')[0],
+      author_role: r.author_role,
+      content_id: Number(r.content_id),
+      title: r.title,
+      content_type: r.content_type,
+      author_creator: r.author_creator,
+      cover_image_url: r.cover_image_url,
+      age_rating: r.age_rating === null ? null : Number(r.age_rating),
+    })),
+  });
+}));
+
+// -----------------------------------------------------------------------------
 // GET /api/content/top-picks  - the home page shelf
 // -----------------------------------------------------------------------------
 router.get('/top-picks', asyncHandler(async (req, res) => {
@@ -260,12 +304,31 @@ router.get('/top-picks', asyncHandler(async (req, res) => {
       boostParams.push(age, age);
     }
   }
+  // A title that shares a tag with something they have already favourited is
+  // the closest thing to "more like what you liked" this recommender can do
+  // without leaving the database.
+  let favMatchSelect = '0 AS fav_match';
+  const favParams = [];
+  if (req.user) {
+    const favSql = `EXISTS (
+      SELECT 1 FROM saved_content s
+        JOIN content_tags mine ON mine.content_id = s.content_id
+        JOIN content_tags theirs ON theirs.tag_id = mine.tag_id
+       WHERE s.user_id = ? AND s.list_type = 'FAVORITE'
+         AND theirs.content_id = c.content_id
+         AND s.content_id <> c.content_id)`;
+    favMatchSelect = `${favSql} AS fav_match`;
+    favParams.push(req.user.user_id);
+    personalBoost.push(`IF(${favSql}, 3, 0)`);
+    boostParams.push(req.user.user_id);
+  }
+
   const boost = personalBoost.length ? `${personalBoost.join(' + ')} + ` : '';
 
   const rows = await db.query(
     `SELECT c.content_id, c.content_type, c.title, c.description, c.author_creator,
             c.age_rating, c.reading_level, c.duration_minutes, c.cover_image_url,
-            c.preview_url, c.created_at,
+            c.preview_url, c.created_at, ${favMatchSelect},
             (SELECT AVG(f.rating) FROM feedback f
               WHERE f.content_id = c.content_id AND f.status = 'ACTIVE' AND f.rating IS NOT NULL) AS rating_avg,
             (SELECT COUNT(*) FROM feedback f
@@ -277,12 +340,12 @@ router.get('/top-picks', asyncHandler(async (req, res) => {
       WHERE 1 = 1${scoped.clause}
       ORDER BY pick_score DESC, c.created_at DESC
       LIMIT ${limit}`,
-    [...boostParams, ...scoped.params],
+    [...favParams, ...boostParams, ...scoped.params],
   );
 
   let items = (await withTags(rows)).map(normaliseRow);
   items = await withPersonalState(items, req.user ? req.user.user_id : null);
-  res.json({ items });
+  res.json({ items: items.map((i) => ({ ...i, fav_match: !!Number(i.fav_match) })) });
 }));
 
 /** Loads one title, enforcing the viewer's scope. Throws 403 if out of scope. */
@@ -366,7 +429,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 // A child can say what they thought without writing anything. Sending the
 // reaction they already have removes it, so the same button toggles.
 // -----------------------------------------------------------------------------
-router.put('/:id/reaction', requireAuth, asyncHandler(async (req, res) => {
+router.put('/:id/reaction', requireAuth, requireReader, asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   const emoji = v.oneOfExact(req.body.emoji, 'Reaction', REACTION_EMOJI);
   await loadVisibleContent(req, id);
@@ -400,7 +463,7 @@ router.put('/:id/reaction', requireAuth, asyncHandler(async (req, res) => {
 // -----------------------------------------------------------------------------
 // DELETE /api/content/:id/reaction
 // -----------------------------------------------------------------------------
-router.delete('/:id/reaction', requireAuth, asyncHandler(async (req, res) => {
+router.delete('/:id/reaction', requireAuth, requireReader, asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   await db.execute('DELETE FROM content_reactions WHERE user_id = ? AND content_id = ?',
     [req.user.user_id, id]);
@@ -438,7 +501,7 @@ router.get('/guest-favourites/:email', guestFavouriteLimiter, asyncHandler(async
   const rows = await db.query(
     `SELECT c.content_id, c.content_type, c.title, c.description, c.author_creator,
             c.age_rating, c.reading_level, c.duration_minutes, c.cover_image_url,
-            c.preview_url, c.created_at, NULL AS rating_avg, 0 AS rating_count
+            c.preview_url, c.created_at, ${favMatchSelect}, NULL AS rating_avg, 0 AS rating_count
        FROM guest_favourites g JOIN content c ON c.content_id = g.content_id
       WHERE g.email = ?${scoped.clause}
       ORDER BY g.created_at DESC`,
@@ -451,7 +514,7 @@ router.get('/guest-favourites/:email', guestFavouriteLimiter, asyncHandler(async
 // POST /api/content/:id/open  - the reader/player opened a title
 // Enforces the daily screen-time limit and starts a progress row.
 // -----------------------------------------------------------------------------
-router.post('/:id/open', requireAuth, asyncHandler(async (req, res) => {
+router.post('/:id/open', requireAuth, requireReader, asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   await assertScreenTimeRemaining(req.user, req.scope);
   const item = await loadVisibleContent(req, id);
@@ -478,7 +541,7 @@ router.post('/:id/open', requireAuth, asyncHandler(async (req, res) => {
 // -----------------------------------------------------------------------------
 // PUT /api/content/:id/progress  - reading position, 0-100%
 // -----------------------------------------------------------------------------
-router.put('/:id/progress', requireAuth, asyncHandler(async (req, res) => {
+router.put('/:id/progress', requireAuth, requireReader, asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   const percentage = v.int(req.body.percentage_completed, 'Progress', { min: 0, max: 100 });
   const position = v.int(req.body.last_position, 'Position',
@@ -512,7 +575,7 @@ router.put('/:id/progress', requireAuth, asyncHandler(async (req, res) => {
 // -----------------------------------------------------------------------------
 // POST /api/content/:id/feedback  - leave a review
 // -----------------------------------------------------------------------------
-router.post('/:id/feedback', requireAuth, asyncHandler(async (req, res) => {
+router.post('/:id/feedback', requireAuth, requireReader, asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   const rating = v.int(req.body.rating, 'Rating', { min: 1, max: 5 });
   const review = v.str(req.body.review, 'Review', { min: 3, max: 2000 });
@@ -550,7 +613,7 @@ router.post('/:id/feedback', requireAuth, asyncHandler(async (req, res) => {
 // -----------------------------------------------------------------------------
 // DELETE /api/content/:id/feedback  - remove your own review
 // -----------------------------------------------------------------------------
-router.delete('/:id/feedback', requireAuth, asyncHandler(async (req, res) => {
+router.delete('/:id/feedback', requireAuth, requireReader, asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   await db.execute('DELETE FROM feedback WHERE user_id = ? AND content_id = ?',
     [req.user.user_id, id]);

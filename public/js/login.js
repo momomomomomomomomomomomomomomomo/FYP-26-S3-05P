@@ -6,7 +6,7 @@
   async function start() {
     await global.SN.init({ active: '/login' });
     if (global.SN.user) {
-      global.location.href = '/';
+      global.location.href = global.SN.homeFor(global.SN.user);
       return;
     }
 
@@ -17,13 +17,17 @@
       button.textContent = 'Signing in…';
 
       try {
-        await global.api.post('/api/auth/login', {
+        const res = await global.api.post('/api/auth/login', {
           identifier: $('#identifier').value,
           password: $('#password').value,
         });
         // Send people where they were headed, but only to a path on this site.
         const next = new URLSearchParams(global.location.search).get('next');
-        global.location.href = next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+        // An explicit ?next= still wins - it is how a locked page sends someone
+        // here and gets them back - otherwise each role goes where it works.
+        global.location.href = next && next.startsWith('/') && !next.startsWith('//')
+          ? next
+          : global.SN.homeFor(res.user);
       } catch (err) {
         showError(err);
         button.disabled = false;

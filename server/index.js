@@ -51,6 +51,7 @@ app.use('/api/me', require('./routes/me'));
 app.use('/api/children', require('./routes/children'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/catalog', require('./routes/catalog'));
 
 // --- Front end ---------------------------------------------------------------
 // `extensions: ['html']` lets /library serve public/library.html.

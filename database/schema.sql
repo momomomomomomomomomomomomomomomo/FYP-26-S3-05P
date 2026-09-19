@@ -19,8 +19,10 @@ USE storynest;
 -- -----------------------------------------------------------------------------
 -- Accounts
 -- -----------------------------------------------------------------------------
--- role: 'ADMIN' | 'ADULT' | 'CHILD'   (a Guest is simply an unauthenticated
--- visitor and therefore has no row in this table)
+-- role: 'ADMIN' | 'LIBRARIAN' | 'ADULT' | 'CHILD'   (a Guest is simply an
+-- unauthenticated visitor and therefore has no row in this table)
+--   ADMIN     - accounts, reports, announcements, the audit trail
+--   LIBRARIAN - the catalogue: titles and the category vocabulary, nothing else
 CREATE TABLE users (
     user_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     role VARCHAR(50) NOT NULL,
@@ -279,7 +281,7 @@ CREATE TABLE audit_logs (
     user_id BIGINT NOT NULL,
     parent_id BIGINT NULL,
     content_id BIGINT NULL,
-    actor_role ENUM('ADULT', 'CHILD', 'ADMIN') NOT NULL,
+    actor_role ENUM('ADULT', 'CHILD', 'ADMIN', 'LIBRARIAN') NOT NULL,
     activity_type VARCHAR(50) NOT NULL,
     description TEXT NULL,
     target_table VARCHAR(100) NULL,

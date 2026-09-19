@@ -7,12 +7,13 @@ const audit = require('../utils/audit');
 const badges = require('../utils/badges');
 const { ApiError, asyncHandler } = require('../utils/errors');
 const { generateReply } = require('../utils/chatbot');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireReader } = require('../middleware/auth');
 
 const router = express.Router();
 // Story Chat needs an account: every message is stored against a user so a
 // parent can review what their child asked.
-router.use(requireAuth);
+// Story Chat recommends things to read, so it is for readers.
+router.use(requireAuth, requireReader);
 
 /** Loads a chat session the caller owns, or throws. */
 async function loadOwnSession(userId, sessionId) {

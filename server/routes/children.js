@@ -10,16 +10,14 @@ const { ageFromDob, loadManagedChild, screenTimeUsedToday } = require('../utils/
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
-router.use(requireAuth, requireRole('ADULT', 'ADMIN'));
+// A family belongs to its own parent. An administrator manages accounts from
+// the admin console; they do not get a seat in someone else's family.
+router.use(requireAuth, requireRole('ADULT'));
 
 const MAX_CHILD_AGE = 17;
 
-/** The ids of every child this caller manages (all of them, for an admin). */
+/** The ids of every child this parent looks after. */
 async function managedChildIds(req) {
-  if (req.user.role === 'ADMIN') {
-    const rows = await db.query(`SELECT user_id FROM users WHERE role = 'CHILD'`);
-    return rows.map((r) => Number(r.user_id));
-  }
   const rows = await db.query(
     `SELECT child_id FROM parent_child_relationships
       WHERE parent_id = ? AND status = 'ACTIVE'`,
@@ -32,21 +30,16 @@ async function managedChildIds(req) {
 // GET /api/children  - the parent dashboard list
 // -----------------------------------------------------------------------------
 router.get('/', asyncHandler(async (req, res) => {
-  const rows = req.user.role === 'ADMIN'
-    ? await db.query(
-      `SELECT u.user_id, u.name, u.email, u.dob, u.reading_level, u.account_status, u.created_at,
-              pc.max_age, pc.daily_screen_limit, pc.allow_content
-         FROM users u LEFT JOIN parental_controls pc ON pc.child_id = u.user_id
-        WHERE u.role = 'CHILD' ORDER BY u.name`)
-    : await db.query(
-      `SELECT u.user_id, u.name, u.email, u.dob, u.reading_level, u.account_status, u.created_at,
-              pc.max_age, pc.daily_screen_limit, pc.allow_content
-         FROM parent_child_relationships r
-         JOIN users u ON u.user_id = r.child_id
-         LEFT JOIN parental_controls pc ON pc.child_id = u.user_id
-        WHERE r.parent_id = ? AND r.status = 'ACTIVE'
-        ORDER BY u.name`,
-      [req.user.user_id]);
+  const rows = await db.query(
+    `SELECT u.user_id, u.name, u.email, u.dob, u.reading_level, u.account_status, u.created_at,
+            pc.max_age, pc.daily_screen_limit, pc.allow_content
+       FROM parent_child_relationships r
+       JOIN users u ON u.user_id = r.child_id
+       LEFT JOIN parental_controls pc ON pc.child_id = u.user_id
+      WHERE r.parent_id = ? AND r.status = 'ACTIVE'
+      ORDER BY u.name`,
+    [req.user.user_id],
+  );
 
   const items = [];
   for (const child of rows) {
@@ -84,6 +77,83 @@ router.get('/', asyncHandler(async (req, res) => {
     });
   }
   res.json({ items });
+}));
+
+// -----------------------------------------------------------------------------
+// GET /api/children/activity  - the parent's landing-page summary
+// One roll-up across every child they look after, rather than one request per
+// child. Declared above GET /:id so the literal path wins.
+// -----------------------------------------------------------------------------
+router.get('/activity', asyncHandler(async (req, res) => {
+  const ids = await managedChildIds(req);
+  if (!ids.length) return res.json({ children: [], events: [], pending_requests: 0 });
+
+  const placeholders = ids.map(() => '?').join(',');
+  const limit = v.limit(req.query.limit, 8, 30);
+
+  const [children, events, pending] = await Promise.all([
+    db.query(
+      `SELECT u.user_id, u.name, u.dob, u.reading_level,
+              (SELECT COUNT(*) FROM progress p
+                WHERE p.user_id = u.user_id AND p.percentage_completed >= 100) AS finished,
+              (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.user_id) AS started,
+              (SELECT MAX(p.updated_at) FROM progress p WHERE p.user_id = u.user_id) AS last_read,
+              pc.daily_screen_limit, pc.allow_content
+         FROM users u
+         LEFT JOIN parental_controls pc ON pc.child_id = u.user_id
+        WHERE u.user_id IN (${placeholders})
+        ORDER BY u.name`,
+      ids,
+    ),
+    // The activity worth a parent's attention: what was opened, finished,
+    // reviewed or asked for. Sign-ins are noise on a dashboard.
+    db.query(
+      `SELECT l.log_id, l.user_id, l.activity_type, l.description, l.created_at,
+              u.name AS child_name, c.title AS content_title, c.content_id
+         FROM audit_logs l
+         JOIN users u ON u.user_id = l.user_id
+         LEFT JOIN content c ON c.content_id = l.content_id
+        WHERE l.user_id IN (${placeholders})
+          AND l.activity_type IN ('CONTENT_OPEN','CONTENT_COMPLETE','CONTENT_REQUEST',
+                                  'FEEDBACK','REACTION','BADGE')
+        ORDER BY l.log_id DESC
+        LIMIT ${limit}`,
+      ids,
+    ),
+    db.queryOne(
+      `SELECT COUNT(*) AS n FROM content_requests
+        WHERE user_id IN (${placeholders}) AND status = 'PENDING'`,
+      ids,
+    ),
+  ]);
+
+  const screenTimes = await Promise.all(children.map((c) => screenTimeUsedToday(c.user_id)));
+
+  res.json({
+    children: children.map((c, i) => ({
+      user_id: Number(c.user_id),
+      name: c.name,
+      age: ageFromDob(c.dob),
+      reading_level: c.reading_level,
+      finished: Number(c.finished),
+      started: Number(c.started),
+      last_read: c.last_read,
+      allow_content: c.allow_content === null ? true : !!c.allow_content,
+      daily_screen_limit: c.daily_screen_limit === null ? null : Number(c.daily_screen_limit),
+      screen_time_today: screenTimes[i],
+    })),
+    events: events.map((e) => ({
+      log_id: Number(e.log_id),
+      child_id: Number(e.user_id),
+      child_name: e.child_name,
+      activity_type: e.activity_type,
+      description: e.description,
+      content_id: e.content_id === null ? null : Number(e.content_id),
+      content_title: e.content_title,
+      created_at: e.created_at,
+    })),
+    pending_requests: Number(pending.n || 0),
+  });
 }));
 
 // -----------------------------------------------------------------------------
