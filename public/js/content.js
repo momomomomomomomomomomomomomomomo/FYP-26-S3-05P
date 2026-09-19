@@ -102,11 +102,13 @@
     $('#reactionsSection').classList.remove('hidden');
 
     const signedIn = !!global.SN.user;
+    const staff = global.SN.isStaff();
     host.appendChild(el('div', { class: 'reactions' }, reactions.options.map((option) => {
       const button = el('button', {
         class: `reaction ${reactions.mine === option.emoji ? 'on' : ''}`.trim(),
         type: 'button',
-        title: option.label,
+        disabled: staff,
+        title: staff ? `${option.label} — staff accounts cannot react` : option.label,
         'aria-label': `${option.label} (${option.count})`,
         'aria-pressed': String(reactions.mine === option.emoji),
         onclick: async () => {
@@ -132,7 +134,7 @@
 
     host.appendChild(el('p', { class: 'tiny muted', style: { margin: '8px 0 0' }, text: reactions.total
       ? `${reactions.total} reader${reactions.total === 1 ? '' : 's'} reacted to this.`
-      : 'Be the first to react.' }));
+      : (staff ? 'No reactions yet.' : 'Be the first to react.') }));
   }
 
   // --- main render ----------------------------------------------------------
@@ -149,13 +151,18 @@
     ].filter(Boolean);
 
     const actions = el('div', { class: 'row' });
+    // Staff may look at any title - a librarian has to be able to check their
+    // own cataloguing - but reading it, saving it and reviewing it all belong to
+    // a reader's account, which staff do not have.
+    const staff = global.SN.isStaff();
 
-    const openBtn = el('a', {
-      class: 'btn btn-primary',
-      href: `/read?id=${item.content_id}`,
-      text: item.content_type === 'VIDEO' ? '▶ Play' : '📖 Read now',
-    });
-    actions.appendChild(openBtn);
+    if (!staff) {
+      actions.appendChild(el('a', {
+        class: 'btn btn-primary',
+        href: `/read?id=${item.content_id}`,
+        text: item.content_type === 'VIDEO' ? '▶ Play' : '📖 Read now',
+      }));
+    }
 
     if (item.external_link) {
       actions.appendChild(el('a', {
@@ -164,24 +171,33 @@
       }));
     }
 
-    const favBtn = el('button', { class: 'btn', dataset: { on: String(!!item.is_favorite) } });
-    setSaveLabel(favBtn, 'FAVORITE', !!item.is_favorite);
-    favBtn.addEventListener('click', () => toggleSave('FAVORITE', favBtn));
-    actions.appendChild(favBtn);
+    if (!staff) {
+      const favBtn = el('button', { class: 'btn', dataset: { on: String(!!item.is_favorite) } });
+      setSaveLabel(favBtn, 'FAVORITE', !!item.is_favorite);
+      favBtn.addEventListener('click', () => toggleSave('FAVORITE', favBtn));
+      actions.appendChild(favBtn);
+    }
 
-    const watchBtn = el('button', { class: 'btn', dataset: { on: String(!!item.in_watchlist) } });
-    setSaveLabel(watchBtn, 'WATCHLIST', !!item.in_watchlist);
-    watchBtn.addEventListener('click', () => toggleSave('WATCHLIST', watchBtn));
-    actions.appendChild(watchBtn);
+    if (!staff) {
+      const watchBtn = el('button', { class: 'btn', dataset: { on: String(!!item.in_watchlist) } });
+      setSaveLabel(watchBtn, 'WATCHLIST', !!item.in_watchlist);
+      watchBtn.addEventListener('click', () => toggleSave('WATCHLIST', watchBtn));
+      actions.appendChild(watchBtn);
+    }
 
     actions.appendChild(el('button', {
       class: 'btn btn-outline', type: 'button', text: '\u25b6 Preview',
       onclick: () => previewDialog(item),
     }));
 
-    if (global.SN.user) {
+    if (global.SN.user && !staff) {
       actions.appendChild(el('button', {
         class: 'btn btn-ghost btn-sm', text: 'Report', onclick: openReportDialog,
+      }));
+    }
+    if (global.SN.user && global.SN.user.role === 'LIBRARIAN') {
+      actions.appendChild(el('a', {
+        class: 'btn btn-outline btn-sm', href: '/librarian', text: 'Edit in the catalogue',
       }));
     }
 
@@ -250,7 +266,7 @@
     clear(host);
     $('#reviewsSection').classList.remove('hidden');
 
-    if (global.SN.user) $('#writeReview').classList.remove('hidden');
+    if (global.SN.user && !global.SN.isStaff()) $('#writeReview').classList.remove('hidden');
 
     if (!reviews.length) {
       host.appendChild(el('p', { class: 'muted small', style: { margin: 0 } },

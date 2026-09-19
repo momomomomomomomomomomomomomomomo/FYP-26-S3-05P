@@ -11,20 +11,60 @@
 <body>
 <header class="nav" id="nav"></header>
 <main class="wrap" id="main">
-  <section class="hero">
+
+  <!-- Guests get the pitch; everyone signed in gets a greeting instead. -->
+  <section class="hero hidden" id="guestHero">
     <div class="hero-mark">📖</div>
     <h1>Welcome to StoryNest</h1>
     <p class="hero-tagline">Where every story finds a home.</p>
-    <p class="hero-sub">Discover magical books, exciting videos, and more — just for you.</p>
+    <p class="hero-sub">A library of books and videos made for children — with grown-ups
+      deciding what is right for their own family.</p>
     <div class="hero-actions">
-      <a class="btn btn-primary btn-lg" href="/library">Explore Library</a>
-      <a class="btn btn-outline btn-lg" href="/chat">Start a Story Chat</a>
+      <a class="btn btn-primary btn-lg" href="/library">Explore the library</a>
+      <a class="btn btn-outline btn-lg" href="/register">Create a family account</a>
     </div>
     <div class="hero-dots"><span class="hero-dot on"></span><span class="hero-dot"></span><span class="hero-dot"></span></div>
   </section>
 
+  <section class="greeting hidden" id="greeting"></section>
+
   <div id="alert"></div>
   <div id="announcement"></div>
+
+  <!-- Guests only: what other readers have said, as a sliding shelf. -->
+  <section class="section hidden" id="reviewsSection">
+    <div class="section-head">
+      <h2>What readers are saying</h2>
+      <div class="row carousel-controls">
+        <button class="icon-btn" id="revPrev" aria-label="Previous reviews">‹</button>
+        <button class="icon-btn" id="revNext" aria-label="More reviews">›</button>
+      </div>
+    </div>
+    <div class="carousel" id="reviewTrack" tabindex="0" aria-label="Reader reviews"></div>
+    <div class="carousel-dots" id="revDots"></div>
+  </section>
+
+  <!-- Adults only: how their children have been getting on. -->
+  <section class="section hidden" id="familySection">
+    <div class="section-head">
+      <h2>Your family this week</h2>
+      <a class="btn btn-sm btn-ghost" href="/parent">Open the family page</a>
+    </div>
+    <div class="child-strip" id="childStrip"></div>
+    <div class="panel" id="activityPanel">
+      <div class="panel-head"><h3 style="font-size:.95rem">Latest activity</h3></div>
+      <div id="activityFeed"></div>
+    </div>
+  </section>
+
+  <!-- Children see the one book they are part-way through, first and large. -->
+  <section class="section hidden" id="resumeSection">
+    <div class="section-head">
+      <h2>Pick up where you left off</h2>
+      <a class="btn btn-sm btn-ghost" href="/account?tab=reading">See everything</a>
+    </div>
+    <div id="resumeHost"></div>
+  </section>
 
   <section class="section hidden" id="continueSection">
     <div class="section-head">
@@ -36,9 +76,10 @@
 
   <section class="section">
     <div class="section-head">
-      <h2>Top Picks</h2>
+      <h2 id="picksHeading">Top Picks</h2>
       <button class="icon-btn" id="filterToggle" title="Filter" aria-label="Filter top picks">≡</button>
     </div>
+    <p class="muted small hidden" id="picksWhy" style="margin:-8px 0 14px"></p>
     <div class="filters collapsed" id="filters">
       <div class="filter-row">
         <div class="field">
@@ -68,7 +109,7 @@
     <div class="grid" id="picksGrid"></div>
   </section>
 
-  <section class="section" id="guestPitch">
+  <section class="section hidden" id="guestPitch">
     <div class="panel">
       <div class="spread">
         <div style="max-width:640px">
@@ -84,7 +125,7 @@
 </main>
 <footer class="footer">
   <div class="wrap footer-inner">
-    <div>© StoryNest — a safe library for young readers.</div>
+    <div>FYP-26-S3-05P</div>
     <div class="row">
       <a href="/about">About us</a>
       <a href="/library">Library</a>

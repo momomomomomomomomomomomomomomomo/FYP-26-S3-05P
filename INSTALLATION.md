@@ -123,7 +123,7 @@ Target: mysql://root@127.0.0.1:3306/storynest
 3/3  Creating demo and test accounts ...
 
 Done.
-  9 accounts, 24 titles, 18 tags.
+  11 accounts, 24 titles, 18 tags.
 ```
 
 > **Careful:** the script **drops** any existing `storynest` database. It
@@ -153,7 +153,8 @@ For development, `npm run dev` restarts the server whenever you save a file.
 
 | Role | Sign in with | Password | What to look at |
 |---|---|---|---|
-| **Administrator** | `admin@storynest.local` | `Admin123!` | *Admin* → every account, the catalogue, reports, audit log |
+| **Administrator** | `admin@storynest.local` | `Admin123!` | *Admin* → accounts, reports, announcements, audit log |
+| **Librarian** | `librarian@storynest.local` | `Librarian123!` | *Catalogue* → add, edit and remove titles, categories, bulk import |
 | **Adult** | `parent@storynest.local` | `Parent123!` | *Family* → Leo and Ada, their controls, one pending request |
 | **Adult** | `daniel@storynest.local` | `Parent123!` | A second family, so the admin list is not trivial |
 | **Child** | `leo` | `storynest1` | Age 8, mysteries blocked, 60 min/day |
@@ -167,6 +168,7 @@ restrictions on the child, for checking each role in isolation:
 | Role | Sign in with | Password | Notes |
 |---|---|---|---|
 | **Administrator** | `test.admin@storynest.local` | `TestAdmin123!` | — |
+| **Librarian** | `test.librarian@storynest.local` | `TestLibrarian123!` | — |
 | **Adult** | `test.parent@storynest.local` | `TestParent123!` | Parent of *Test Kid* |
 | **Child** | `testkid` | `testkid1` | Age 9, no blocked genres, no screen limit |
 
@@ -240,7 +242,8 @@ storynest/
 │   │   ├── me.js           # favourites, watchlist, badges, notifications, requests
 │   │   ├── children.js     # adult: child accounts, parental controls, requests
 │   │   ├── chat.js         # Story Chat sessions and messages
-│   │   └── admin.js        # users, catalogue, bulk import, categories, reports, logs
+│   │   ├── admin.js        # users, reports, announcements, audit log
+│   │   └── catalog.js      # the Librarian's routes: titles, categories, bulk import
 │   └── utils/
 │       ├── access.js       # who may see what — the parental-control rules
 │       ├── chatbot.js      # the offline Story Chat recommender
@@ -251,7 +254,9 @@ storynest/
 ├── public/                 # the front end (plain HTML, CSS and JavaScript)
 │   ├── index.html          # home page — the approved wireframe
 │   ├── library.html watch.html content.html read.html chat.html
-│   ├── login.html register.html account.html parent.html admin.html about.html
+│   ├── login.html register.html account.html parent.html about.html
+│   ├── admin.html          # accounts and moderation
+│   ├── librarian.html      # the catalogue
 │   ├── css/styles.css
 │   └── js/                 # api.js, app.js (shared) + one file per page
 ├── .env.example
@@ -268,15 +273,17 @@ storynest/
 | | Guest | Child | Adult | Administrator |
 |---|---|---|---|---|
 | Browse the library | ✅ whole catalogue | ✅ **filtered by their parent**, simplified view | ✅ | ✅ |
+| Add, edit or remove a title | ❌ | ❌ | ❌ | ❌ — that is the **Librarian's** job |
+| Have a reader profile (favourites, progress, badges, Story Chat) | ❌ | ✅ | ✅ | ❌ — staff accounts have none |
 | Preview a title (blurb, opening lines, trailer) | ✅ | ✅ | ✅ | ✅ |
 | Save favourites, track progress, earn badges | ✅ favourites, against an email | ✅ | ✅ | ✅ |
 | React to a title with one emoji | ❌ | ✅ | ✅ | ✅ |
 | Story Chat | ❌ | ✅ (filtered) | ✅ | ✅ |
 | Ask to unlock a blocked title | — | ✅ | — | — |
 | Create and manage child accounts | ❌ | ❌ | ✅ **their own children only** | ✅ all |
-| Set age limits, blocked genres, screen time | ❌ | ❌ | ✅ | ✅ |
+| Set age limits, blocked genres, screen time | ❌ | ❌ | ✅ | ❌ — a family belongs to its parent |
 | See every account on the site | ❌ | ❌ | ❌ | ✅ |
-| Edit the catalogue, handle reports, post announcements | ❌ | ❌ | ❌ | ✅ |
+| Handle reports, post announcements, read the audit log | ❌ | ❌ | ❌ | ✅ |
 
 **How a child's library is filtered.** All of it happens in SQL, in
 `server/utils/access.js` (`contentScopeClause`), so a hidden title never reaches

@@ -7,13 +7,14 @@ const audit = require('../utils/audit');
 const badges = require('../utils/badges');
 const { ApiError, asyncHandler } = require('../utils/errors');
 const { contentScopeClause, screenTimeUsedToday } = require('../utils/access');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireReader } = require('../middleware/auth');
 const contentRoutes = require('./content');
 
 const { withTags, normaliseRow, loadVisibleContent } = contentRoutes;
 
 const router = express.Router();
-router.use(requireAuth);
+// Favourites, progress, badges and requests belong to a reader.
+router.use(requireAuth, requireReader);
 
 const CARD_COLUMNS = `c.content_id, c.content_type, c.title, c.description, c.author_creator,
   c.age_rating, c.reading_level, c.duration_minutes, c.cover_image_url, c.created_at,

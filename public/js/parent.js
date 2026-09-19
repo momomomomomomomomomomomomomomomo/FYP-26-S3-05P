@@ -447,7 +447,7 @@
   }
 
   async function start() {
-    const ok = await global.SN.init({ requireRole: ['ADULT', 'ADMIN'], requireAuth: true, active: '/parent' });
+    const ok = await global.SN.init({ requireRole: 'ADULT', requireAuth: true, active: '/parent' });
     if (!ok) return;
 
     try {

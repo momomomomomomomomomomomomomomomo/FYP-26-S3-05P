@@ -144,7 +144,10 @@
             email,
             isChild ? el('span', { class: 'hint', text: 'Only a grown-up can change this.' }) : null,
           ]),
-          el('div', { class: 'field' }, [el('label', { text: 'Reading level' }), level]),
+          // Reading level sorts a reader's library; it means nothing for staff.
+          global.SN.isStaff()
+            ? null
+            : el('div', { class: 'field' }, [el('label', { text: 'Reading level' }), level]),
           el('div', { class: 'field' }, [
             el('label', { text: 'Date of birth' }),
             el('input', { type: 'text', value: `${user.dob} (age ${user.age})`, disabled: true }),
@@ -155,7 +158,8 @@
           onclick: async (event) => {
             event.currentTarget.disabled = true;
             try {
-              const body = { name: name.value, reading_level: level.value };
+              const body = { name: name.value };
+              if (!global.SN.isStaff()) body.reading_level = level.value;
               if (!isChild) body.email = email.value;
               await global.api.patch('/api/auth/me', body);
               showOk('Saved.');
@@ -221,11 +225,19 @@
     const user = global.SN.user;
     $('#bigAvatar').textContent = fmt.initials(user.name);
     $('#userName').textContent = user.name;
+    const ROLE_LABEL = {
+      CHILD: 'Child account',
+      ADULT: 'Adult account',
+      ADMIN: 'Administrator — staff account',
+      LIBRARIAN: 'Librarian — staff account',
+    };
+    const staff = global.SN.isStaff();
     $('#userMeta').textContent = [
-      user.role === 'CHILD' ? 'Child account' : user.role === 'ADMIN' ? 'Administrator' : 'Adult account',
+      ROLE_LABEL[user.role] || user.role,
       user.role === 'CHILD' ? `login ID: ${user.email}` : user.email,
-      `age ${user.age}`,
-      user.reading_level ? fmt.level(user.reading_level) : null,
+      // Age and reading level describe a reader, not a member of staff.
+      staff ? null : `age ${user.age}`,
+      !staff && user.reading_level ? fmt.level(user.reading_level) : null,
     ].filter(Boolean).join(' · ');
   }
 
@@ -265,11 +277,24 @@
     renderHeader();
     renderScopeNote();
 
+    // Staff keep this page only to edit their own name and password: there is
+    // no reading history, no favourites and no badges behind a staff account.
+    const staff = global.SN.isStaff();
+    if (staff) {
+      $$('#tabs .tab').forEach((tab) => {
+        if (tab.dataset.tab !== 'profile') tab.remove();
+      });
+    }
+
     $$('#tabs .tab').forEach((tab) => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
 
     const wanted = new URLSearchParams(global.location.search).get('tab');
+    if (staff) {
+      switchTab('profile');
+      return;
+    }
     switchTab(loaders[wanted] ? wanted : 'reading');
   }
 
