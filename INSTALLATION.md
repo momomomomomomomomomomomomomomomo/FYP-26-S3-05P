@@ -187,9 +187,12 @@ it when creating the account.
    and choose *Unlock it*.
 4. Sign back in as `leo`. The title is now in his library — an approved title
    overrides the age and genre rules, but only for him.
-5. Open **Story Chat** as Leo and ask for *"a detective mystery"*. It says it
-   cannot find one, rather than offering something else and calling it a
-   mystery — the chatbot only ever searches inside what Leo is allowed to see.
+5. Open **Story Chat** as Leo and ask for *"a scary mystery"*. It tells him a
+   grown-up has turned that kind off and points him at them — it does not offer
+   something else under that name, and it does not reveal how many mysteries the
+   library holds. Try *"a book for a 12 year old"* too: same polite refusal,
+   because Leo's limit is 8. Then ask for *"an adventure, but nothing scary"*
+   and watch it exclude what he did not want.
 
 ---
 
@@ -246,7 +249,9 @@ storynest/
 │   │   └── catalog.js      # the Librarian's routes: titles, categories, bulk import
 │   └── utils/
 │       ├── access.js       # who may see what — the parental-control rules
-│       ├── chatbot.js      # the offline Story Chat recommender
+│       ├── chatbot.js      # Story Chat: retrieve, rank (BM25), verify, explain
+│       ├── nlp.js          # the language model: stemming, negation, TF-IDF
+│       ├── chat-guard.js   # who may see what, checked before and after
 │       ├── badges.js       # automatic badge awards
 │       ├── audit.js        # writes audit_logs
 │       ├── validate.js     # input checking
@@ -302,15 +307,25 @@ OR  a parent has APPROVED it in content_requests
 current day and compared with `parental_controls.daily_screen_limit`. Once it is
 spent, opening a title returns 403.
 
-**The Story Chat is deliberately not an LLM.** `server/utils/chatbot.js` reads
-the child's message for a genre, format, length or age, then ranks the library
-with SQL. That keeps the app runnable with no API key and no internet
-connection, and it means every suggestion passes through the same parental
-filter as the library. It is also careful not to overstate: if a child asks for
-a mystery and their parent has blocked mysteries, it says it could not find one
-instead of offering something else under that name. To swap in a real model,
-replace `generateReply()` — the routes only depend on its
-`{reply, contentIds}` return shape.
+**The Story Chat runs its NLP in-process, not through an API.**
+`server/utils/nlp.js` is the language model: it normalises the message (including
+contractions), tokenises it, stems each word, works out what the reader does
+*not* want, maps the words onto the catalogue's own category vocabulary, and
+classifies the intent. `server/utils/chatbot.js` then retrieves the titles the
+reader is allowed to open and ranks them with **BM25** over a TF-IDF index of
+every title, blurb, author and tag — rebuilt automatically whenever a librarian
+changes the catalogue, so a title added now is findable now. No API key, no
+internet, nothing leaves the machine.
+
+**The guard rails are a separate module on purpose.**
+`server/utils/chat-guard.js` checks three times: it refuses a request that breaks
+the reader's settings *before* searching, retrieval runs only through
+`contentScopeClause()`, and every id the ranker returns is re-verified in its own
+query afterwards. That last check is the one that survives a future refactor
+forgetting the scope clause — or a language model being dropped in behind
+`rankCandidates()`, which is the only function that should ever be replaced.
+Refusals are recorded as `CHAT_BLOCKED` in the audit trail, and never reveal what
+is hidden.
 
 **Two deliberate changes to the original schema** (both noted at the top of
 `database/schema.sql`): `users.email` is now `UNIQUE`, because login resolves an

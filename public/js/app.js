@@ -58,6 +58,7 @@
     REPORT: 'Reported something',
     REPORT_DECISION: 'Decided on a report',
     REACTION: 'Reacted to a title',
+    CHAT_BLOCKED: 'Story Chat declined a request',
     CONTENT_IMPORT: 'Bulk imported titles',
     CONTENT_CREATE: 'Added a title',
     CONTENT_UPDATE: 'Edited a title',

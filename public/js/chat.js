@@ -46,7 +46,9 @@
     const isUser = msg.sender === 'USER';
     const node = el('div', { class: `msg ${isUser ? 'msg-user' : 'msg-bot'}` });
 
-    const bubble = el('div', { class: 'bubble' });
+    // A refusal is not an error and not an ordinary answer: it is the chat
+    // explaining a boundary a grown-up set, so it reads differently.
+    const bubble = el('div', { class: `bubble${msg.blocked ? ' bubble-blocked' : ''}` });
     bubble.appendChild(richText(msg.message_text));
     node.appendChild(bubble);
 
@@ -105,7 +107,7 @@
       const res = await global.api.post(`/api/chat/sessions/${sessionId}/messages`, { message: text });
       typing.remove();
       // The first message in the response is the echo of what was just sent.
-      res.messages.slice(1).forEach(append);
+      res.messages.slice(1).forEach((m) => append({ ...m, blocked: res.blocked }));
       (res.badges_awarded || []).forEach((b) => toast(`Badge unlocked: ${b}`, 'ok'));
     } catch (err) {
       typing.remove();
