@@ -54,6 +54,32 @@ quietly building up a personal library nobody intended them to have.
 Signing in takes each role where its work is: administrators land on the admin
 console, librarians on the catalogue, and everyone else on the landing page.
 
+## How Story Chat is kept safe
+
+The recommender is not trusted to police itself. Three independent checks, in
+`server/utils/chat-guard.js`:
+
+1. **Before** — a request that breaks the reader's own settings is refused
+   before any search runs: a blocked genre, an age above their limit, a paused
+   library, or a subject no children's library should serve on request.
+2. **During** — candidates come only from `contentScopeClause()`, so a title
+   outside the reader's scope is never even ranked.
+3. **After** — every id the ranker returns is re-checked against the same rules
+   in a separate query. Anything that fails is dropped and logged.
+
+The third check looks redundant and is the point: it is what still holds if
+someone edits a ranking query and forgets the scope clause, or swaps the
+recommender for a language model that invents a title.
+
+A refusal never names, counts or hints at what is hidden — "there are 4
+mysteries you cannot read" is still a leak. It says the subject is off limits
+for them and points at the grown-up who can change it. Refusals are written to
+`audit_logs` as `CHAT_BLOCKED`, so they appear on the parent's activity feed.
+
+The language model itself (`server/utils/nlp.js`) never touches the database and
+knows nothing about who is asking — it is handed documents that have already
+been filtered and only ranks them.
+
 ## How a child's library is filtered
 
 All filtering happens in SQL, in `server/utils/access.js`, so a hidden title is
@@ -89,9 +115,13 @@ One page, four experiences, decided by who is looking:
   opening lines and a trailer link if one is set — which a Guest may open too.
   Children get the same catalogue with a **simplified view**: no sort or level
   menus, big topic chips, and their grown-up's filter still applied.
-- **Story Chat** — an offline, rules-based recommender that searches the
-  library. It respects the same parental filter as everything else, and it will
-  not claim to have found a genre it did not find.
+- **Story Chat** — an NLP recommender that reads a sentence and searches the
+  library: normalise → tokenise → stem → negation → TF-IDF index scored with
+  **BM25**, alongside the format, length, age and reading level it reads out of
+  the request. It understands what you *don't* want ("an adventure, but nothing
+  scary"), and it learns new words as the catalogue grows, because the category
+  vocabulary comes from the database rather than a hard-coded list. It runs
+  in-process: no API key, no request leaves the machine.
 - **Reading** — progress tracking, favourites, watchlist, reviews and ratings,
   one-tap **emoji reactions** for readers who would rather not write, and seven
   automatic badges. Visitors without an account can favourite against an email

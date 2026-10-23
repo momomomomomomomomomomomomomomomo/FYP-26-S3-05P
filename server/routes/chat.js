@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 
 const db = require('../db');
 const v = require('../utils/validate');
@@ -10,6 +11,18 @@ const { generateReply } = require('../utils/chatbot');
 const { requireAuth, requireReader } = require('../middleware/auth');
 
 const router = express.Router();
+
+// The recommender runs a handful of queries per message. This keeps one person
+// - or one stuck script - from turning the chat into a way to hammer the
+// database, without getting in the way of a child who is simply chatty.
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String(req.user ? req.user.user_id : req.ip),
+  message: { error: 'You are asking very quickly! Give me a moment to catch up.' },
+});
 // Story Chat needs an account: every message is stored against a user so a
 // parent can review what their child asked.
 // Story Chat recommends things to read, so it is for readers.
@@ -148,9 +161,11 @@ router.get('/sessions/:id/messages', asyncHandler(async (req, res) => {
 // -----------------------------------------------------------------------------
 // POST /api/chat/sessions/:id/messages  - say something, get a reply
 // -----------------------------------------------------------------------------
-router.post('/sessions/:id/messages', asyncHandler(async (req, res) => {
+router.post('/sessions/:id/messages', chatLimiter, asyncHandler(async (req, res) => {
   const sessionId = v.int(req.params.id, 'Session id', { min: 1 });
-  const text = v.str(req.body.message, 'Message', { min: 1, max: 500 });
+  // Control characters are stripped before the message is stored or analysed.
+  const text = v.str(String(req.body.message || '').replace(/[\u0000-\u001f\u007f]/g, ' '),
+    'Message', { min: 1, max: 500 });
 
   const session = await loadOwnSession(req.user.user_id, sessionId);
   if (session.ended_at) throw ApiError.conflict('That chat has ended. Start a new one.');
@@ -160,8 +175,9 @@ router.post('/sessions/:id/messages', asyncHandler(async (req, res) => {
     [sessionId, text],
   );
 
-  // The recommender only ever sees titles this viewer is allowed to open.
-  const { reply, contentIds } = await generateReply(text, req.scope, req.user);
+  // The recommender only ever sees titles this viewer is allowed to open, and
+  // re-checks every id it is about to return. See utils/chat-guard.js.
+  const { reply, contentIds, blocked, violations } = await generateReply(text, req.scope, req.user);
 
   const botMsg = await db.execute(
     `INSERT INTO chat_msgs (session_id, sender, message_text) VALUES (?, 'CHATBOT', ?)`,
@@ -182,6 +198,18 @@ router.post('/sessions/:id/messages', asyncHandler(async (req, res) => {
     targetId: userMsg.insertId,
   });
 
+  // A refused request is worth a line of its own: it is exactly what a parent
+  // wants to see on the activity feed, and what an administrator needs when
+  // someone reports that the chat is behaving oddly.
+  if (blocked) {
+    await audit.logFor(req, {
+      activityType: 'CHAT_BLOCKED',
+      description: `Story Chat declined a request (${violations.map((x) => x.code).join(', ')})`,
+      targetTable: 'chat_msgs',
+      targetId: botMsg.insertId,
+    });
+  }
+
   const awarded = await badges.checkAndAward(req.user.user_id);
   const messages = await withRecommendations([
     {
@@ -200,7 +228,13 @@ router.post('/sessions/:id/messages', asyncHandler(async (req, res) => {
     },
   ]);
 
-  res.status(201).json({ messages, badges_awarded: awarded.map((b) => b.badge_name) });
+  res.status(201).json({
+    messages,
+    badges_awarded: awarded.map((b) => b.badge_name),
+    // The front end styles a refusal differently; it is told that one happened,
+    // but never which rule or which titles were involved.
+    blocked: Boolean(blocked),
+  });
 }));
 
 // -----------------------------------------------------------------------------

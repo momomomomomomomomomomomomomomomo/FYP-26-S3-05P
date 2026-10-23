@@ -14,9 +14,18 @@ const v = require('../utils/validate');
 const audit = require('../utils/audit');
 const { ApiError, asyncHandler } = require('../utils/errors');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { invalidateIndex } = require('../utils/chatbot');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('LIBRARIAN'));
+
+// Story Chat searches a text index of the catalogue. Any change here makes that
+// index stale, so it is dropped after every write rather than relying on each
+// route to remember - a title added now is findable in chat now.
+router.use((req, res, next) => {
+  if (req.method !== 'GET') res.on('finish', invalidateIndex);
+  next();
+});
 
 // -----------------------------------------------------------------------------
 // GET /api/catalog/stats  - the shelf at a glance
