@@ -153,29 +153,105 @@
             el('input', { type: 'text', value: `${user.dob} (age ${user.age})`, disabled: true }),
           ]),
         ]),
-        el('div', { style: { marginTop: '14px' } }, el('button', {
-          class: 'btn btn-primary',
-          onclick: async (event) => {
-            event.currentTarget.disabled = true;
-            try {
-              const body = { name: name.value };
-              if (!global.SN.isStaff()) body.reading_level = level.value;
-              if (!isChild) body.email = email.value;
-              await global.api.patch('/api/auth/me', body);
-              showOk('Saved.');
-              const me = await global.api.get('/api/auth/me');
-              global.SN.state.user = me.user;
-              global.SN.renderNav(global.SN.currentPath());
-              renderHeader();
-            } catch (err) {
-              showError(err);
-            } finally {
-              event.currentTarget.disabled = false;
-            }
+        el('div', {
+          style: {
+            marginTop: '14px',
+            display: 'flex',
+            gap: '10px'
+          }
+        }, [
+
+          el('button', {
+            class: 'btn btn-primary',
+            onclick: async (event) => {
+              event.currentTarget.disabled = true;
+              try {
+                const body = { name: name.value };
+                if (!global.SN.isStaff()) body.reading_level = level.value;
+                if (!isChild) body.email = email.value;
+
+                await global.api.patch('/api/auth/me', body);
+
+                showOk('Saved.');
+
+                const me = await global.api.get('/api/auth/me');
+                global.SN.state.user = me.user;
+                global.SN.renderNav(global.SN.currentPath());
+                renderHeader();
+              } catch (err) {
+                showError(err);
+              } finally {
+                event.currentTarget.disabled = false;
+              }
+            },
+          }, ['Save changes']),
+
+        el('button', {
+          class: 'btn btn-danger',
+          onclick: () => {
+            $('#deleteAccountModal').classList.remove('hidden');
           },
-        }, ['Save changes'])),
+        }, ['Delete account'])
+        ]),
       ]));
 
+      host.appendChild(
+        el('div', {
+          id: 'deleteAccountModal',
+          class: 'modal-overlay hidden'
+        }, [
+
+          el('div', { class: 'modal-box' }, [
+
+            el('h3', {
+              text: 'Delete Account'
+            }),
+
+            el('p', {
+              text: 'Are you sure you want to permanently delete your account? This action cannot be undone.'
+            }),
+
+            el('div', {
+              style: {
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                marginTop: '20px'
+              }
+            }, [
+
+              el('button', {
+                class: 'btn btn-outline',
+                onclick: () => {
+                  $('#deleteAccountModal').classList.add('hidden');
+                }
+              }, ['Cancel']),
+
+              el('button', {
+                class: 'btn btn-danger',
+                onclick: async (event) => {
+                  event.currentTarget.disabled = true;
+
+                  try {
+                    await global.api.del('/api/auth/me');
+
+                    toast('Account deleted.');
+
+                    global.location.href = '/';
+                  } catch (err) {
+                    showError(err);
+                  } finally {
+                    event.currentTarget.disabled = false;
+                  }
+                }
+              }, ['Yes, delete account'])
+
+            ])
+
+          ])
+
+        ])
+      );
       const current = el('input', { type: 'password', autocomplete: 'current-password' });
       const next = el('input', { type: 'password', autocomplete: 'new-password' });
       const confirm = el('input', { type: 'password', autocomplete: 'new-password' });
