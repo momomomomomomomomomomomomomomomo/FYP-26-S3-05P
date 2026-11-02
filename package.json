@@ -8,7 +8,10 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "db:setup": "node scripts/setup-db.js",
-    "db:reset": "node scripts/setup-db.js --force"
+    "db:reset": "node scripts/setup-db.js --force",
+    "books:import": "node scripts/import-books.js",
+    "books:covers": "node scripts/make-covers.js",
+    "seed:community": "node scripts/seed-community.js"
   },
   "engines": { "node": ">=18.0.0" },
   "dependencies": {

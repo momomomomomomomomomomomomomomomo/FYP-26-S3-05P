@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Every Owl in the Wood">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b2b26"/><stop offset="1" stop-color="#2f6d5f"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="356" cy="143" r="2.4" fill="#ffffff" opacity="0.84"/><circle cx="400" cy="237" r="3.3" fill="#ffffff" opacity="0.81"/><circle cx="53" cy="429" r="1.5" fill="#ffffff" opacity="0.45"/><circle cx="586" cy="44" r="2.0" fill="#ffffff" opacity="0.37"/><circle cx="52" cy="296" r="3.4" fill="#ffffff" opacity="0.75"/><circle cx="440" cy="46" r="2.6" fill="#ffffff" opacity="0.60"/><circle cx="128" cy="386" r="1.2" fill="#ffffff" opacity="0.75"/><circle cx="95" cy="31" r="2.9" fill="#ffffff" opacity="0.72"/><circle cx="511" cy="355" r="3.2" fill="#ffffff" opacity="0.72"/><circle cx="31" cy="159" r="1.4" fill="#ffffff" opacity="0.68"/><circle cx="232" cy="143" r="3.1" fill="#ffffff" opacity="0.51"/><circle cx="517" cy="249" r="1.5" fill="#ffffff" opacity="0.58"/><circle cx="343" cy="190" r="1.8" fill="#ffffff" opacity="0.77"/><circle cx="358" cy="165" r="2.9" fill="#ffffff" opacity="0.64"/><circle cx="242" cy="255" r="1.6" fill="#ffffff" opacity="0.39"/><circle cx="353" cy="235" r="2.2" fill="#ffffff" opacity="0.50"/><circle cx="272" cy="53" r="3.0" fill="#ffffff" opacity="0.45"/><circle cx="80" cy="369" r="2.6" fill="#ffffff" opacity="0.66"/><circle cx="551" cy="122" r="2.2" fill="#ffffff" opacity="0.55"/><circle cx="376" cy="299" r="1.6" fill="#ffffff" opacity="0.45"/>
+    <g transform="translate(300 300)">
+      <ellipse cx="0" cy="10" rx="92" ry="110" fill="#f5cb5c"/>
+      <circle cx="-34" cy="-26" r="32" fill="#ffffff" opacity=".92"/>
+      <circle cx="34" cy="-26" r="32" fill="#ffffff" opacity=".92"/>
+      <circle cx="-34" cy="-26" r="13" fill="#0b2b26"/>
+      <circle cx="34" cy="-26" r="13" fill="#0b2b26"/>
+      <path d="M0,-6 L-16,16 L16,16 Z" fill="#0b2b26"/>
+      <path d="M-92,-30 L-60,-82 L-34,-54 Z M92,-30 L60,-82 L34,-54 Z" fill="#f5cb5c"/>
+      <path d="M-40,116 L-40,136 M40,116 L40,136" stroke="#4f9a8a" stroke-width="10" stroke-linecap="round"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="522" width="500" height="2" fill="#f5cb5c" opacity=".9"/>
+  <text x="300" y="603.8" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">EVERY OWL IN</tspan><tspan x="300" dy="68.2">THE WOOD</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Mira Halloway</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#f5cb5c">STORYNEST</text>
+</svg>

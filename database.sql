@@ -13,7 +13,12 @@ CREATE TABLE users (
     parental_consent BOOLEAN DEFAULT FALSE,
     account_status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Login resolves an account by email for adults and staff and by login id
+    -- for children, both held in this column, so it has to be unique. NULL is
+    -- still allowed and MySQL permits many NULLs in a unique index, so a child
+    -- created without a login is unaffected.
+    UNIQUE KEY unique_user_email (email)
 );
 
 CREATE TABLE parent_child_relationships (
@@ -63,6 +68,17 @@ CREATE TABLE content (
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+CREATE TABLE content_pages (
+    page_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    content_id BIGINT NOT NULL,
+    page_number INT NOT NULL,
+    heading VARCHAR(200) NULL,
+    body TEXT NOT NULL,
+    illustration VARCHAR(255) NULL,
+    FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_content_page (content_id, page_number)
 );
 
 CREATE TABLE tags (
@@ -247,3 +263,12 @@ CREATE INDEX idx_feedback_content ON feedback(content_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_guest_favourites_email ON guest_favourites(email);
 CREATE INDEX idx_reactions_content ON content_reactions(content_id);
+CREATE INDEX idx_pages_content ON content_pages(content_id, page_number);
+
+-- Columns the application filters by on every request.
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_content_age ON content(age_rating);
+CREATE INDEX idx_content_tags_tag ON content_tags(tag_id);
+CREATE INDEX idx_pcr_child ON parent_child_relationships(child_id);
+CREATE INDEX idx_requests_user_status ON content_requests(user_id, status);
+CREATE INDEX idx_audit_activity_date ON audit_logs(activity_type, created_at);

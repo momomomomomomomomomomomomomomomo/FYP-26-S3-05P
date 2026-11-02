@@ -100,6 +100,21 @@ CREATE TABLE content (
     INDEX idx_content_age (age_rating)
 );
 
+-- The pages of a book. A title with no rows here still works - the reader falls
+-- back to a generated sample - but a title with pages is a real, readable book.
+CREATE TABLE content_pages (
+    page_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    content_id BIGINT NOT NULL,
+    page_number INT NOT NULL,
+    heading VARCHAR(200) NULL,
+    body TEXT NOT NULL,
+    -- A decorative motif for the page: an emoji, or a path to artwork.
+    illustration VARCHAR(255) NULL,
+    FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_content_page (content_id, page_number),
+    INDEX idx_pages_content (content_id, page_number)
+);
+
 CREATE TABLE tags (
     tag_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     tag_name VARCHAR(100) UNIQUE NOT NULL,

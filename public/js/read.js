@@ -1,59 +1,70 @@
 /* The reader / player.
  *
- * The sample library stores metadata only - there are no book files or video
- * streams in the repository - so this page renders a demo reader: a paginated
- * placeholder built from the title's own description. What is real is
- * everything around it: opening a title is authorised by the server, reading
- * position is saved to `progress`, and a minute of screen time is reported
- * every minute so parental limits actually bite. Swap `buildPages()` for your
- * real content (or an <iframe>/<video> pointed at external_link) and the rest
- * keeps working.
+ * Titles that have their text in the database - everything in database/books/ -
+ * are read here for real, a page at a time, straight from
+ * GET /api/content/:id/pages.
+ *
+ * Titles that have no text, which is the videos and the older metadata-only
+ * entries, fall back to a short generated sample built from the blurb, and say
+ * so plainly rather than pretending.
+ *
+ * Either way the machinery around it is the same and is real: the server
+ * authorises the open, reading position is saved to `progress`, and a minute of
+ * screen time is reported every minute so parental limits actually bite.
  */
 (function reader(global) {
   'use strict';
   const { el, $, clear, showError, emptyState, toast, fmt } = global.SN;
 
   const contentId = Number(new URLSearchParams(global.location.search).get('id'));
-  const PAGES = 8;
 
   let item = null;
+  let pages = [];       // [{ heading, paragraphs[], illustration }]
   let page = 0;
   let heartbeat = null;
 
-  function buildPages(content) {
+  /** For titles with no text of their own: a short, honest stand-in. */
+  function samplePages(content) {
     const lead = content.description || 'A story is waiting for you here.';
-    const pages = [];
-    for (let i = 0; i < PAGES; i += 1) {
-      if (i === 0) {
-        pages.push([lead,
-          `This is the StoryNest demo reader. In a finished build the pages of "${content.title}" `
-          + 'would appear here. Everything else on this screen is real: your place is saved, and '
-          + 'your reading time counts towards any daily limit a grown-up has set.']);
-      } else if (i === PAGES - 1) {
-        pages.push([`Page ${i + 1} of ${PAGES}.`,
-          'The end. Tap "Finish" to mark this one as read - that is what earns your badges.']);
-      } else {
-        pages.push([`Page ${i + 1} of ${PAGES}.`,
-          'Sample text stands in for the real pages of the book while the catalogue is being filled in.']);
-      }
-    }
-    return pages;
+    return [
+      {
+        heading: content.title,
+        paragraphs: [lead,
+          'This title is in the catalogue but its pages are not in StoryNest yet, so this is a '
+          + 'stand-in rather than the real thing.'],
+        illustration: content.content_type === 'VIDEO' ? '🎬' : '📄',
+      },
+      {
+        paragraphs: ['Everything around it is real, though: your place is saved as you go, and '
+          + 'your reading time counts towards any daily limit a grown-up has set.',
+        'Tap Finish to mark it as read.'],
+        illustration: null,
+      },
+    ];
   }
 
   function renderPage() {
-    const pages = buildPages(item);
     const reader = $('#reader');
+    const current = pages[page];
     clear(reader);
-    pages[page].forEach((para) => reader.appendChild(el('p', { text: para })));
 
-    $('#progressLabel').textContent = `Page ${page + 1} of ${PAGES}`;
+    if (current.illustration) {
+      reader.appendChild(el('div', { class: 'page-motif', 'aria-hidden': 'true',
+        text: current.illustration }));
+    }
+    if (current.heading) {
+      reader.appendChild(el('h2', { class: 'page-heading', text: current.heading }));
+    }
+    current.paragraphs.forEach((para) => reader.appendChild(el('p', { text: para })));
+
+    $('#progressLabel').textContent = `Page ${page + 1} of ${pages.length}`;
     $('#prevBtn').disabled = page === 0;
-    $('#nextBtn').textContent = page === PAGES - 1 ? 'Finish ✓' : 'Next →';
+    $('#nextBtn').textContent = page === pages.length - 1 ? 'Finish ✓' : 'Next →';
     global.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function saveProgress() {
-    const pct = Math.round(((page + 1) / PAGES) * 100);
+    const pct = Math.round(((page + 1) / pages.length) * 100);
     try {
       const res = await global.api.put(`/api/content/${contentId}/progress`, {
         percentage_completed: pct,
@@ -110,8 +121,12 @@
     try {
       // The server decides whether this reader may open this title at all.
       await global.api.post(`/api/content/${contentId}/open`, {});
-      const data = await global.api.get(`/api/content/${contentId}`);
+      const [data, text] = await Promise.all([
+        global.api.get(`/api/content/${contentId}`),
+        global.api.get(`/api/content/${contentId}/pages`),
+      ]);
       item = data.item;
+      pages = text.has_text ? text.pages : samplePages(item);
     } catch (err) {
       const main = $('#main');
       clear(main);
@@ -133,7 +148,7 @@
     ].filter(Boolean).join(' · ');
     $('#backLink').href = `/content?id=${contentId}`;
 
-    page = Math.min(Number(item.last_position) || 0, PAGES - 1);
+    page = Math.min(Number(item.last_position) || 0, pages.length - 1);
     renderPage();
     saveProgress();
     startHeartbeat();
@@ -145,7 +160,7 @@
       }
     });
     $('#nextBtn').addEventListener('click', async () => {
-      if (page < PAGES - 1) {
+      if (page < pages.length - 1) {
         page += 1;
         renderPage();
         saveProgress();

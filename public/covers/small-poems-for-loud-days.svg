@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Small Poems for Loud Days">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d213c"/><stop offset="1" stop-color="#d88c9a"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="356" cy="140" r="2.1" fill="#e0a0ae" opacity="0.84"/><circle cx="400" cy="232" r="2.7" fill="#e0a0ae" opacity="0.81"/><circle cx="53" cy="419" r="1.4" fill="#e0a0ae" opacity="0.45"/><circle cx="586" cy="44" r="1.8" fill="#e0a0ae" opacity="0.37"/><circle cx="52" cy="289" r="2.8" fill="#e0a0ae" opacity="0.75"/><circle cx="440" cy="45" r="2.2" fill="#e0a0ae" opacity="0.60"/><circle cx="128" cy="377" r="1.1" fill="#e0a0ae" opacity="0.75"/><circle cx="95" cy="31" r="2.4" fill="#e0a0ae" opacity="0.72"/><circle cx="511" cy="347" r="2.7" fill="#e0a0ae" opacity="0.72"/><circle cx="31" cy="156" r="1.3" fill="#e0a0ae" opacity="0.68"/><circle cx="232" cy="140" r="2.6" fill="#e0a0ae" opacity="0.51"/><circle cx="517" cy="243" r="1.4" fill="#e0a0ae" opacity="0.58"/><circle cx="343" cy="186" r="1.6" fill="#e0a0ae" opacity="0.77"/><circle cx="358" cy="161" r="2.4" fill="#e0a0ae" opacity="0.64"/><circle cx="242" cy="249" r="1.5" fill="#e0a0ae" opacity="0.39"/><circle cx="353" cy="230" r="1.9" fill="#e0a0ae" opacity="0.50"/><circle cx="272" cy="52" r="2.5" fill="#e0a0ae" opacity="0.45"/><circle cx="80" cy="360" r="2.2" fill="#e0a0ae" opacity="0.66"/><circle cx="551" cy="119" r="2.0" fill="#e0a0ae" opacity="0.55"/><circle cx="376" cy="292" r="1.5" fill="#e0a0ae" opacity="0.45"/>
+    <g transform="translate(300 300) rotate(16)">
+      <path d="M0,130 C0,40 14,-60 52,-130 C92,-56 84,40 36,120 Z" fill="#f2e9e4"/>
+      <path d="M0,130 C0,40 14,-60 52,-130" fill="none" stroke="#6d213c" stroke-width="5" opacity=".5"/>
+      <path d="M10,96 L48,72" stroke="#6d213c" stroke-width="3" opacity=".3"/><path d="M15,68 L51,44" stroke="#6d213c" stroke-width="3" opacity=".3"/><path d="M20,40 L54,16" stroke="#6d213c" stroke-width="3" opacity=".3"/><path d="M25,12 L57,-12" stroke="#6d213c" stroke-width="3" opacity=".3"/><path d="M30,-16 L60,-40" stroke="#6d213c" stroke-width="3" opacity=".3"/><path d="M35,-44 L63,-68" stroke="#6d213c" stroke-width="3" opacity=".3"/><path d="M40,-72 L66,-96" stroke="#6d213c" stroke-width="3" opacity=".3"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#f2e9e4" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">SMALL POEMS</tspan><tspan x="300" dy="68.2">FOR LOUD</tspan><tspan x="300" dy="68.2">DAYS</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Maud Ellery</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#f2e9e4">STORYNEST</text>
+</svg>

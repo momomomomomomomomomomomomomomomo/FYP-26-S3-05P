@@ -93,6 +93,20 @@ OR  a parent has APPROVED it for them
 If `parental_controls.allow_content` is off, only approved titles appear.
 `max_age` falls back to the child's own age when no limit is set.
 
+## A library that looks used
+
+`npm run db:setup` does not leave an empty shelf. It seeds 26 demo families —
+26 adults and 43 children — who between them have written **446 reviews across
+all 86 titles**, with the reading progress, reactions and favourites behind
+them. Ratings run from 2.5 to 5.0 stars, dated across the past twenty months.
+
+Everything about it is deterministic, so a rebuild reproduces the same library
+rather than a different one — on any machine, on any day, since the dates are
+measured from a fixed point rather than from today — and reversible with
+`npm run seed:community -- --reset`. The generator refuses to contradict the
+access rules: a child never reviews a title their own age limit would hide, and
+staff accounts never review anything, because they have no reader profile.
+
 ## The landing page
 
 One page, four experiences, decided by who is looking:
@@ -118,10 +132,19 @@ One page, four experiences, decided by who is looking:
 - **Story Chat** — an NLP recommender that reads a sentence and searches the
   library: normalise → tokenise → stem → negation → TF-IDF index scored with
   **BM25**, alongside the format, length, age and reading level it reads out of
-  the request. It understands what you *don't* want ("an adventure, but nothing
+  the request. It knows 36 subject concepts and 348 of the words children use
+  for them, and every one of the 86 titles is reachable through its own subject
+  matter. It understands what you *don't* want ("an adventure, but nothing
   scary"), and it learns new words as the catalogue grows, because the category
   vocabulary comes from the database rather than a hard-coded list. It runs
   in-process: no API key, no request leaves the machine.
+- **Seventy-eight full-text books** — real stories, 20 to 31 pages each, 2,029
+  pages and about 50,000 words in all, read page by page in the app rather than
+  as a placeholder. Every title in the catalogue, the eight videos included, has
+  generated cover art drawn as SVG from a palette-and-motif system, so nothing
+  is fetched from the internet and no image is licensed from anyone. The books
+  live in `database/books/`, one file per book; `npm run books:import` loads
+  them and `npm run books:covers` draws the covers.
 - **Reading** — progress tracking, favourites, watchlist, reviews and ratings,
   one-tap **emoji reactions** for readers who would rather not write, and seven
   automatic badges. Visitors without an account can favourite against an email
@@ -145,7 +168,8 @@ server — no build step, no framework, no bundler.
 ## Layout
 
 ```
-database/   schema.sql (22 tables) and seed.sql (sample library)
+database/   schema.sql (23 tables), seed.sql (sample library),
+            storynest-full.sql (the finished database, for importing)
 scripts/    setup-db.js — one command to build the database
 server/     Express app: config, db pool, middleware, routes, access rules
 public/     the front end: one HTML file and one JS file per page

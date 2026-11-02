@@ -98,7 +98,9 @@
       ]),
     ]));
 
-    const data = await global.api.get('/api/content', { limit: 60, sort: 'title' });
+    // Every title, not a page of them: a librarian cannot edit what the table
+    // does not list. The server caps this at 300.
+    const data = await global.api.get('/api/content', { limit: 300, sort: 'title' });
 
     const rows = data.items.map((c) => el('tr', {}, [
       el('td', {}, [
@@ -128,8 +130,13 @@
       ]),
     ]));
 
-    host.appendChild(el('div', { class: 'panel' },
-      table(['Title', 'Type', 'Ages', 'Level', 'Tags', ''], rows)));
+    host.appendChild(el('div', { class: 'panel' }, [
+      el('p', { class: 'tiny muted', style: { margin: '0 0 10px' }, text:
+        `Showing ${data.items.length} of ${data.total} title${data.total === 1 ? '' : 's'}.`
+        + (data.items.length < data.total
+          ? ' The list is capped; search the library to reach the rest.' : '') }),
+      table(['Title', 'Type', 'Ages', 'Level', 'Tags', ''], rows),
+    ]));
   }
 
   function openContentEditor(existing) {

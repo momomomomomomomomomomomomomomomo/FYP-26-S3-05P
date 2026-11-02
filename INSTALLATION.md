@@ -106,10 +106,13 @@ npm run db:setup
 
 This one command:
 
-1. creates the `storynest` database and all 22 tables (`database/schema.sql`),
-2. loads 24 sample titles, 18 tags and 7 badges (`database/seed.sql`),
+1. creates the `storynest` database and all 23 tables (`database/schema.sql`),
+2. loads the sample titles, tags and badges (`database/seed.sql`),
 3. creates the demo accounts and the per-role test accounts, with passwords
-   hashed using bcrypt.
+   hashed using bcrypt,
+4. adds the full-text books from `database/books/`,
+5. adds the demo families and the reviews, reading history, reactions and
+   favourites that make the library look used.
 
 You should see:
 
@@ -118,17 +121,46 @@ StoryNest database setup
 ------------------------
 Target: mysql://root@127.0.0.1:3306/storynest
 
-1/3  Creating tables ...
-2/3  Loading the sample library ...
-3/3  Creating demo and test accounts ...
+1/5  Creating tables ...
+2/5  Loading the sample library ...
+3/5  Creating demo and test accounts ...
+4/5  Adding the full-text books ...
+5/5  Filling the library with readers ...
 
 Done.
-  11 accounts, 24 titles, 18 tags.
+  80 accounts, 86 titles, 36 tags.
+  78 of those titles are full books, with 2029 pages of text.
+  446 reviews from 26 demo families (43 children).
 ```
+
+followed by the list of sign-ins. The accounts and passwords are also kept in
+`ACCOUNTS.md`.
 
 > **Careful:** the script **drops** any existing `storynest` database. It
 > refuses to run if one already contains accounts — use `npm run db:reset` when
 > you really do want to wipe and start again.
+
+### Moving the database to another machine
+
+The command above is reproducible: run it anywhere and you get the same titles,
+the same accounts, the same reviews and the same dates. Nothing in the seed is
+measured from the day it runs, so a copy built next month matches this one.
+
+If you would rather carry the finished database across than rebuild it, import
+the full export instead of running step 5:
+
+```bash
+mysql -u root -p < database/storynest-full.sql
+```
+
+That file holds the schema and every row, drops and recreates `storynest`, and
+produces a database identical to the one `npm run db:setup` builds — all 23
+tables match row for row. Use whichever route suits the machine; both end up in
+the same place.
+
+Only the passwords differ between the two routes, and only in their stored
+form: bcrypt salts each hash separately, so the hashes are never byte-identical
+even though the passwords themselves are the same.
 
 ---
 
@@ -228,10 +260,17 @@ mysql -u root -p storynest -e "SELECT user_id, role, name, email FROM users;"
 ```
 storynest/
 ├── database/
-│   ├── schema.sql          # all 22 tables — drops and recreates the database
-│   └── seed.sql            # sample titles, tags and badges
+│   ├── schema.sql          # all 23 tables — drops and recreates the database
+│   ├── seed.sql            # sample titles, tags and badges
+│   ├── storynest-full.sql  # the finished database, schema and all rows
+│   ├── books/              # 78 full books, one file each, pages and all
+│   ├── videos.js           # cover art and categories for the video titles
+│   ├── seed-community.js   # the demo families and everything they wrote
+│   └── import-books.js     # loads database/books/ into the catalogue
 ├── scripts/
-│   └── setup-db.js         # runs both SQL files, then creates the accounts
+│   ├── setup-db.js         # runs both SQL files, creates accounts, loads books
+│   ├── import-books.js     # adds the books to a database that already exists
+│   └── make-covers.js      # draws public/covers/*.svg from database/books/
 ├── server/
 │   ├── index.js            # Express app: middleware, routes, static files
 │   ├── config.js           # reads .env

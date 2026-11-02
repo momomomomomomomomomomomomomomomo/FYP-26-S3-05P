@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Dig Here">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7f4f24"/><stop offset="1" stop-color="#dda15e"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <path d="M0,440 L0,250 C70,170 150,120 260,112 C380,104 500,170 600,260 L600,440 Z"
+          fill="#e9c46a" opacity=".6"/>
+    <path d="M190,440 C190,330 232,268 300,268 C368,268 410,330 410,440 Z" fill="#0a0f16" opacity=".88"/>
+    <path d="M232,272 l9,24 l9,-24 Z" fill="#e9c46a" opacity=".5"/><path d="M268,272 l9,40 l9,-40 Z" fill="#e9c46a" opacity=".5"/><path d="M332,272 l9,24 l9,-24 Z" fill="#e9c46a" opacity=".5"/><path d="M368,272 l9,40 l9,-40 Z" fill="#e9c46a" opacity=".5"/>
+    <circle cx="300" cy="372" r="16" fill="#606c38" opacity=".95"/>
+    <circle cx="300" cy="372" r="34" fill="#606c38" opacity=".22"/>
+    <path d="M120,440 l24,-58 l24,58 Z" fill="#7f4f24" opacity=".5"/><path d="M470,440 l34,-72 l34,72 Z" fill="#7f4f24" opacity=".5"/>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="590" width="500" height="2" fill="#c3c7b3" opacity=".9"/>
+  <text x="300" y="672" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">DIG HERE</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Ravi Chandra</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#c3c7b3">STORYNEST</text>
+</svg>

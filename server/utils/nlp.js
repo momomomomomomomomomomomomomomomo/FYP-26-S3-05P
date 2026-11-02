@@ -75,6 +75,10 @@ function stem(word) {
     w = `${w.slice(0, -3)}y`;
   } else if (/(ches|shes|xes|zes|ses)$/.test(w)) {
     w = w.slice(0, -2);
+  } else if (/oes$/.test(w) && w.length > 4) {
+    // volcanoes -> volcano, heroes -> hero. Without this the plural a child
+    // types never matches the singular in the blurb.
+    w = w.slice(0, -2);
   } else if (/s$/.test(w)) {
     w = w.slice(0, -1);
   }
@@ -165,6 +169,42 @@ const TAG_SYNONYMS = {
   History: ['history', 'historical', 'ancient', 'past', 'museum', 'castle', 'egypt', 'roman'],
   Science: ['science', 'experiment', 'volcano', 'chemistry', 'biology', 'physics', 'invention'],
   Dinosaurs: ['dinosaur', 't-rex', 'trex', 'triceratops', 'fossil', 'jurassic', 'prehistoric'],
+
+  // The catalogue grew; so did the vocabulary. The tag names themselves are
+  // read live from the database, so a new category is matched by its own name
+  // automatically - these are the words a child uses *instead* of the name.
+  Robots: ['robot', 'android', 'machine', 'cyborg', 'automaton', 'circuit', 'programmed'],
+  Pirates: ['pirate', 'treasure map', 'galleon', 'buccaneer', 'plank', 'doubloon', 'cutlass'],
+  Music: ['music', 'song', 'sing', 'singing', 'band', 'instrument', 'guitar', 'piano', 'drum',
+    'trumpet', 'violin', 'cello', 'orchestra', 'choir', 'tune'],
+  Food: ['food', 'cook', 'cooking', 'bake', 'baking', 'cake', 'bread', 'soup', 'dinner',
+    'recipe', 'kitchen', 'pancake', 'hungry', 'eat'],
+  Sports: ['sport', 'football', 'soccer', 'race', 'racing', 'running', 'swim', 'swimming',
+    'team', 'match', 'goal', 'cycling', 'chess', 'training', 'win', 'competition'],
+  School: ['school', 'class', 'classroom', 'teacher', 'homework', 'lesson', 'playground',
+    'pupil', 'test', 'spelling'],
+  Trains: ['train', 'railway', 'station', 'platform', 'locomotive', 'engine driver', 'track',
+    'timetable', 'carriage'],
+  Insects: ['insect', 'bug', 'ant', 'bee', 'beetle', 'butterfly', 'wasp', 'spider', 'worm',
+    'caterpillar', 'ladybird'],
+  Birds: ['bird', 'owl', 'starling', 'robin', 'gull', 'seagull', 'nest', 'feather', 'wing',
+    'sparrow', 'crow', 'eagle'],
+  Ocean: ['ocean', 'sea', 'seaside', 'beach', 'tide', 'wave', 'whale', 'dolphin', 'shark',
+    'reef', 'shore', 'deep sea', 'underwater'],
+  Weather: ['weather', 'rain', 'raining', 'storm', 'thunder', 'lightning', 'wind', 'windy',
+    'forecast', 'cloud', 'fog', 'hail'],
+  Winter: ['winter', 'snow', 'snowy', 'ice', 'icy', 'frost', 'freezing', 'cold', 'sledge',
+    'christmas'],
+  Night: ['night', 'dark', 'darkness', 'midnight', 'bedtime', 'stars', 'moonlight', 'nocturnal',
+    'late'],
+  Islands: ['island', 'islands', 'desert island', 'lighthouse', 'harbour', 'shipwreck', 'coast'],
+  Deserts: ['desert', 'sand', 'dune', 'cactus', 'oasis', 'drought', 'heat'],
+  Farming: ['farm', 'farmer', 'farming', 'tractor', 'sheep', 'cow', 'barn', 'harvest', 'crop',
+    'field', 'hay', 'allotment', 'garden', 'gardening'],
+  Art: ['art', 'draw', 'drawing', 'paint', 'painting', 'colour', 'colours', 'picture', 'sketch',
+    'museum', 'design'],
+  Inventions: ['invention', 'invent', 'inventor', 'build', 'building', 'engineer', 'engineering',
+    'gadget', 'machine', 'patent', 'fix', 'fixing', 'repair'],
 };
 
 /** Pre-stems the synonym table once, at load. */

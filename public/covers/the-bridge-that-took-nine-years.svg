@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Bridge That Took Nine Years">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2d42"/><stop offset="1" stop-color="#8d99ae"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <g transform="translate(300 294) rotate(-4)">
+      <path d="M-170,-110 L-56,-80 L58,-114 L170,-84 L170,110 L58,80 L-56,114 L-170,84 Z" fill="#ef233c"/>
+      <path d="M-56,-80 L-56,114 M58,-114 L58,80" stroke="#2b2d42" stroke-width="4" opacity=".35"/>
+      <path d="M-140,40 C-80,-10 -10,60 60,0 C110,-40 140,-10 150,10" fill="none"
+            stroke="#2b2d42" stroke-width="6" stroke-dasharray="14 12" opacity=".65"/>
+      <path d="M120,-44 l14,24 l-28,0 Z" fill="#2b2d42" opacity=".7"/>
+      <path d="M-116,-30 l-14,26 l28,0 Z" fill="#2b2d42" opacity=".5"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#f9abb5" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE BRIDGE</tspan><tspan x="300" dy="68.2">THAT TOOK</tspan><tspan x="300" dy="68.2">NINE YEARS</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Dr. Yuki Tanabe</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#f9abb5">STORYNEST</text>
+</svg>

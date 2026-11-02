@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Mountain That Grew Overnight">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5f0f40"/><stop offset="1" stop-color="#c9184a"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="150" cy="160" r="48" fill="#ffd6a5" opacity=".9"/>
+    <path d="M0,420 L170,200 L300,360 L410,250 L600,420 Z" fill="#ff758f" opacity=".8"/>
+    <path d="M170,200 L222,268 L118,268 Z" fill="#ffffff" opacity=".75"/>
+    <path d="M410,250 L452,306 L368,306 Z" fill="#ffffff" opacity=".6"/>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#ffd6a5" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE MOUNTAIN</tspan><tspan x="300" dy="68.2">THAT GREW</tspan><tspan x="300" dy="68.2">OVERNIGHT</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Dr. Yuki Tanabe</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#ffd6a5">STORYNEST</text>
+</svg>

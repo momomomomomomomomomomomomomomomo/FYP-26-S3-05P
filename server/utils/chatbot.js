@@ -33,7 +33,12 @@ const { contentScopeClause } = require('./access');
  */
 
 const MAX_SUGGESTIONS = 4;
-const CANDIDATE_POOL = 60;
+// The pool must be able to hold the whole catalogue. It used to be 60, which
+// was fine for 24 titles and silently hid a third of them once there were 86:
+// the query has no ORDER BY, so a LIMIT below the catalogue size drops an
+// arbitrary slice before ranking ever sees it. Ranking happens in JS, so the
+// only cost of a generous pool is memory. Revisit above a few thousand titles.
+const CANDIDATE_POOL = 2000;
 const INDEX_TTL_MS = 60 * 1000;
 
 // -----------------------------------------------------------------------------
@@ -98,10 +103,18 @@ async function retrieve(analysis, scope, { strict }) {
     params.push(analysis.type);
   }
   if (strict && analysis.tags.length) {
-    where.push(`EXISTS (SELECT 1 FROM content_tags ct JOIN tags t ON t.tag_id = ct.tag_id
-                         WHERE ct.content_id = c.content_id AND t.tag_name IN (${
-  analysis.tags.map(() => '?').join(',')}))`);
-    params.push(...analysis.tags);
+    // A tag inferred from one word is a requirement, but not one that may
+    // exclude a title the reader has half-named. "The girl with the loudest
+    // laugh" infers Humour from "laugh"; the book itself is not tagged Humour,
+    // and gating on the tag alone made its own title unsearchable.
+    const titleAlternatives = analysis.stems.map(() => 'c.title LIKE ?');
+    const tagClause = `EXISTS (SELECT 1 FROM content_tags ct JOIN tags t ON t.tag_id = ct.tag_id
+                               WHERE ct.content_id = c.content_id AND t.tag_name IN (${
+  analysis.tags.map(() => '?').join(',')}))`;
+    where.push(titleAlternatives.length
+      ? `(${tagClause} OR ${titleAlternatives.join(' OR ')})`
+      : tagClause);
+    params.push(...analysis.tags, ...analysis.stems.map((w) => `%${w}%`));
   }
   // A genre they have explicitly refused is excluded outright, not just ranked down.
   if (analysis.negatedTags.length) {
@@ -147,6 +160,11 @@ async function rankCandidates(candidates, analysis) {
     .map((row) => {
       const relevance = nlp.scoreDoc(index, row.content_id, queryStems, analysis.negatedStems);
       let score = relevance;
+
+      // A query that repeats most of a title is a lookup, not a browse.
+      const titleStems = nlp.tokenise(nlp.normalise(row.title)).map(nlp.stem);
+      const named = analysis.stems.filter((w) => titleStems.includes(w)).length;
+      if (named >= 2) score += 3 * named;
 
       if (analysis.type && row.content_type === analysis.type) score += 2.5;
       if (analysis.readingLevel && row.reading_level === analysis.readingLevel) score += 1.5;
