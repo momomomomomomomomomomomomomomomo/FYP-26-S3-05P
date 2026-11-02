@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Lantern of Little Hollow">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#344e41"/><stop offset="1" stop-color="#a3b18a"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="356" cy="143" r="2.4" fill="#ffffff" opacity="0.84"/><circle cx="400" cy="237" r="3.3" fill="#ffffff" opacity="0.81"/><circle cx="53" cy="429" r="1.5" fill="#ffffff" opacity="0.45"/><circle cx="586" cy="44" r="2.0" fill="#ffffff" opacity="0.37"/><circle cx="52" cy="296" r="3.4" fill="#ffffff" opacity="0.75"/><circle cx="440" cy="46" r="2.6" fill="#ffffff" opacity="0.60"/><circle cx="128" cy="386" r="1.2" fill="#ffffff" opacity="0.75"/><circle cx="95" cy="31" r="2.9" fill="#ffffff" opacity="0.72"/><circle cx="511" cy="355" r="3.2" fill="#ffffff" opacity="0.72"/><circle cx="31" cy="159" r="1.4" fill="#ffffff" opacity="0.68"/><circle cx="232" cy="143" r="3.1" fill="#ffffff" opacity="0.51"/><circle cx="517" cy="249" r="1.5" fill="#ffffff" opacity="0.58"/><circle cx="343" cy="190" r="1.8" fill="#ffffff" opacity="0.77"/><circle cx="358" cy="165" r="2.9" fill="#ffffff" opacity="0.64"/><circle cx="242" cy="255" r="1.6" fill="#ffffff" opacity="0.39"/><circle cx="353" cy="235" r="2.2" fill="#ffffff" opacity="0.50"/><circle cx="272" cy="53" r="3.0" fill="#ffffff" opacity="0.45"/><circle cx="80" cy="369" r="2.6" fill="#ffffff" opacity="0.66"/>
+    <g transform="translate(300 290)">
+      <rect x="-54" y="-70" width="108" height="124" rx="16" fill="#f4a259"/>
+      <rect x="-34" y="-46" width="68" height="78" rx="10" fill="#344e41" opacity=".35"/>
+      <rect x="-64" y="-84" width="128" height="18" rx="8" fill="#588157"/>
+      <rect x="-64" y="52" width="128" height="18" rx="8" fill="#588157"/>
+      <path d="M0,-84 C0,-120 0,-130 0,-144" stroke="#ffffff" stroke-width="5" fill="none" opacity=".8"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#f4a259" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE LANTERN</tspan><tspan x="300" dy="68.2">OF LITTLE</tspan><tspan x="300" dy="68.2">HOLLOW</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Mira Halloway</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#f4a259">STORYNEST</text>
+</svg>

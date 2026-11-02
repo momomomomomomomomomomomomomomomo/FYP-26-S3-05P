@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Three Hundred Sheep">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#233d1e"/><stop offset="1" stop-color="#6a994e"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <path d="M0,410 Q150,340 300,410 T600,410 V470 H0 Z" fill="#a7c957" opacity=".55"/>
+    <g transform="translate(300 310)">
+      <path d="M-150,-20 L0,-140 L150,-20 Z" fill="#f2e8cf"/>
+      <rect x="-116" y="-20" width="232" height="130" fill="#a7c957"/>
+      <rect x="-30" y="30" width="60" height="80" rx="6" fill="#233d1e" opacity=".75"/>
+      <rect x="-92" y="6" width="44" height="44" rx="6" fill="#f2e8cf" opacity=".95"/>
+      <rect x="48" y="6" width="44" height="44" rx="6" fill="#f2e8cf" opacity=".95"/>
+      <rect x="70" y="-108" width="30" height="56" fill="#f2e8cf"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#f2e8cf" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THREE</tspan><tspan x="300" dy="68.2">HUNDRED</tspan><tspan x="300" dy="68.2">SHEEP</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Ada Rennick</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#f2e8cf">STORYNEST</text>
+</svg>

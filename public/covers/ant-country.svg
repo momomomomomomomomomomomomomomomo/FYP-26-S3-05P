@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Ant Country">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b4332"/><stop offset="1" stop-color="#40916c"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="140" cy="170" r="26" fill="#52b788" opacity=".45"/><circle cx="470" cy="140" r="26" fill="#52b788" opacity=".45"/><circle cx="200" cy="390" r="26" fill="#52b788" opacity=".45"/>
+    <g transform="translate(300 292) rotate(-10)">
+      <ellipse cx="0" cy="0" rx="96" ry="62" fill="#f6bd60"/>
+      <rect x="-50" y="-62" width="20" height="124" fill="#1b4332" opacity=".75"/><rect x="-10" y="-62" width="20" height="124" fill="#1b4332" opacity=".75"/><rect x="30" y="-62" width="20" height="124" fill="#1b4332" opacity=".75"/>
+      <circle cx="-96" cy="-6" r="34" fill="#1b4332" opacity=".9"/>
+      <ellipse cx="10" cy="-70" rx="52" ry="28" fill="#ffffff" opacity=".35" transform="rotate(-18)"/>
+      <path d="M-120,-30 C-134,-56 -118,-66 -110,-54 M-120,-22 C-140,-36 -132,-54 -122,-44"
+            fill="none" stroke="#1b4332" stroke-width="5"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="590" width="500" height="2" fill="#f6bd60" opacity=".9"/>
+  <text x="300" y="672" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">ANT COUNTRY</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Dr. Yuki Tanabe</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#f6bd60">STORYNEST</text>
+</svg>

@@ -13,11 +13,19 @@
     sort: 'popular', tags: [], offset: 0, total: 0,
   };
 
+  /**
+   * Reads any filter passed in the address bar - the tag chips on a title page
+   * link here with ?tag=.
+   *
+   * @returns {boolean} whether a filter arrived that lives *inside* the panel.
+   *   The search box is visible either way, so a ?q= does not count.
+   */
   function readQueryString() {
     const params = new URLSearchParams(global.location.search);
     if (params.get('q')) state.q = params.get('q');
     if (params.get('tag')) state.tags = [params.get('tag')];
     if (!VIDEOS_ONLY && params.get('type')) state.type = params.get('type');
+    return Boolean(params.get('tag') || (!VIDEOS_ONLY && params.get('type')));
   }
 
   /** Explains to a child why their library is smaller than the whole catalogue. */
@@ -211,7 +219,7 @@
 
   async function start() {
     await global.SN.init({ active: VIDEOS_ONLY ? '/watch' : '/library' });
-    readQueryString();
+    const arrivedFiltered = readQueryString();
 
     if (VIDEOS_ONLY) {
       $('#pageTitle').textContent = 'Watch';
@@ -229,7 +237,21 @@
     $('#fLevel').addEventListener('change', (e) => { state.reading_level = e.target.value; reload(); });
     $('#fAge').addEventListener('change', (e) => { state.age_max = e.target.value; reload(); });
     $('#fSort').addEventListener('change', (e) => { state.sort = e.target.value; reload(); });
-    $('#filterToggle').addEventListener('click', () => $('#filters').classList.toggle('collapsed'));
+    $('#filterToggle').addEventListener('click', () => {
+      const panel = $('#filters');
+      panel.classList.toggle('collapsed');
+      $('#filterToggle').setAttribute('aria-expanded', String(!panel.classList.contains('collapsed')));
+    });
+
+    // The panel starts shut. The one exception is arriving with a filter already
+    // applied - from a tag chip on a title page - where leaving it shut would
+    // narrow the shelf with nothing on screen to say why.
+    if (arrivedFiltered) {
+      $('#filters').classList.remove('collapsed');
+    }
+    $('#filterToggle').setAttribute('aria-expanded',
+      String(!$('#filters').classList.contains('collapsed')));
+    $('#filterToggle').setAttribute('aria-controls', 'filters');
     $('#loadMore').addEventListener('click', () => load(true));
     $('#clearFilters').addEventListener('click', () => {
       state.q = '';

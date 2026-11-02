@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Bakery at the Bottom of the Hill">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bc6c25"/><stop offset="1" stop-color="#dda15e"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <g transform="translate(110 400) scale(0.8)">
+    <path d="M0,0 L0,-78" stroke="#fefae0" stroke-width="7" fill="none"/>
+    <ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(0 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(72 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(144 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(216 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(288 0 -78)"/>
+    <circle cx="0" cy="-78" r="15" fill="#ffffff" opacity=".8"/>
+  </g><g transform="translate(230 360) scale(1.05)">
+    <path d="M0,0 L0,-78" stroke="#fefae0" stroke-width="7" fill="none"/>
+    <ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(0 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(72 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(144 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(216 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(288 0 -78)"/>
+    <circle cx="0" cy="-78" r="15" fill="#ffffff" opacity=".8"/>
+  </g><g transform="translate(360 400) scale(0.8)">
+    <path d="M0,0 L0,-78" stroke="#fefae0" stroke-width="7" fill="none"/>
+    <ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(0 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(72 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(144 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(216 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(288 0 -78)"/>
+    <circle cx="0" cy="-78" r="15" fill="#ffffff" opacity=".8"/>
+  </g><g transform="translate(490 360) scale(1.05)">
+    <path d="M0,0 L0,-78" stroke="#fefae0" stroke-width="7" fill="none"/>
+    <ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(0 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(72 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(144 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(216 0 -78)"/><ellipse cx="0" cy="-104" rx="17" ry="30" fill="#283618" transform="rotate(288 0 -78)"/>
+    <circle cx="0" cy="-78" r="15" fill="#ffffff" opacity=".8"/>
+  </g>
+    <circle cx="470" cy="140" r="44" fill="#283618" opacity=".85"/>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="385" width="500" height="2" fill="#adb3a7" opacity=".9"/>
+  <text x="300" y="467.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE BAKERY</tspan><tspan x="300" dy="68.2">AT THE</tspan><tspan x="300" dy="68.2">BOTTOM OF</tspan><tspan x="300" dy="68.2">THE HILL</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Elise Marchetti</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#adb3a7">STORYNEST</text>
+</svg>

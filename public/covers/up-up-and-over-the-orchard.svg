@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Up, Up and Over the Orchard">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9c6644"/><stop offset="1" stop-color="#e6ccb2"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    
+    <g transform="translate(120 160) scale(1)" fill="#3b2718" opacity=".3">
+      <circle cx="0" cy="0" r="34"/><circle cx="34" cy="8" r="26"/><circle cx="-32" cy="10" r="24"/>
+      <rect x="-32" y="0" width="68" height="22" rx="11"/>
+    </g>
+    <g transform="translate(470 120) scale(0.75)" fill="#3b2718" opacity=".3">
+      <circle cx="0" cy="0" r="34"/><circle cx="34" cy="8" r="26"/><circle cx="-32" cy="10" r="24"/>
+      <rect x="-32" y="0" width="68" height="22" rx="11"/>
+    </g>
+    <g transform="translate(250 110) scale(0.5)" fill="#3b2718" opacity=".3">
+      <circle cx="0" cy="0" r="34"/><circle cx="34" cy="8" r="26"/><circle cx="-32" cy="10" r="24"/>
+      <rect x="-32" y="0" width="68" height="22" rx="11"/>
+    </g>
+    <g transform="translate(300 262)">
+      <path d="M0,-108 C62,-108 96,-62 96,-18 C96,34 48,74 0,124 C-48,74 -96,34 -96,-18 C-96,-62 -62,-108 0,-108 Z" fill="#3d348b"/>
+      <path d="M-32,-104 C-14,-60 -14,34 0,124 M32,-104 C14,-60 14,34 0,124" stroke="#9c6644" stroke-width="4" fill="none" opacity=".4"/>
+      <rect x="-24" y="126" width="48" height="36" rx="8" fill="#ddb892"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#b5b2d3" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">UP, UP AND</tspan><tspan x="300" dy="68.2">OVER THE</tspan><tspan x="300" dy="68.2">ORCHARD</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Sam Okonkwo</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#b5b2d3">STORYNEST</text>
+</svg>

@@ -145,6 +145,8 @@
     const meta = [
       fmt.ages(item),
       item.content_type === 'VIDEO' ? 'Video' : 'Book',
+      // Only books with their text in StoryNest can say how long they are.
+      item.page_count ? `${item.page_count} pages` : null,
       fmt.duration(item.duration_minutes),
       item.reading_level ? fmt.level(item.reading_level) : null,
       item.language,

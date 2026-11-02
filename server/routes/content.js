@@ -185,7 +185,9 @@ router.get('/', asyncHandler(async (req, res) => {
   }
 
   const sort = SORTS[String(req.query.sort || 'popular')] || SORTS.popular;
-  const limit = v.limit(req.query.limit, 24, 60);
+  // The ceiling is the librarian's catalogue screen, which lists every title
+  // on one page. Readers never ask for more than a shelf-full.
+  const limit = v.limit(req.query.limit, 24, 300);
   const offset = v.offset(req.query.offset);
 
   const whereSql = where.length ? ` AND ${where.join(' AND ')}` : '';
@@ -383,6 +385,9 @@ router.get('/:id', asyncHandler(async (req, res) => {
        FROM feedback WHERE content_id = ? AND status = 'ACTIVE'`,
     [id],
   );
+  const pageCount = await db.queryOne(
+    'SELECT COUNT(*) AS n FROM content_pages WHERE content_id = ?', [id],
+  );
 
   const reviews = await db.query(
     `SELECT f.feedback_id, f.rating, f.review, f.created_at, f.user_id,
@@ -394,7 +399,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
     [id],
   );
 
-  let payload = normaliseRow({ ...tagged, ...ratings });
+  let payload = normaliseRow({ ...tagged, ...ratings, page_count: Number(pageCount.n || 0) });
   [payload] = await withPersonalState([payload], req.user ? req.user.user_id : null);
 
   // "More like this": shares at least one tag, still inside the viewer's scope.
@@ -508,6 +513,42 @@ router.get('/guest-favourites/:email', guestFavouriteLimiter, asyncHandler(async
     [email, ...scoped.params],
   );
   res.json({ items: (await withTags(rows)).map(normaliseRow) });
+}));
+
+// -----------------------------------------------------------------------------
+// GET /api/content/:id/pages  - the text of a book
+//
+// This is the content itself, not a description of it, so it is guarded exactly
+// like opening a title: you must be signed in, you must be a reader rather than
+// staff, and loadVisibleContent must agree you may see this one. A child outside
+// the title's scope gets the same 403 and the same "ask a grown-up" path they
+// get on the title page, and never a page of text.
+// -----------------------------------------------------------------------------
+router.get('/:id/pages', requireAuth, requireReader, asyncHandler(async (req, res) => {
+  const id = v.int(req.params.id, 'Content id', { min: 1 });
+  const item = await loadVisibleContent(req, id);
+
+  const rows = await db.query(
+    `SELECT page_number, heading, body, illustration
+       FROM content_pages WHERE content_id = ? ORDER BY page_number`,
+    [id],
+  );
+
+  res.json({
+    content_id: id,
+    title: item.title,
+    author_creator: item.author_creator,
+    // A title with no pages is not an error: the reader falls back to a sample
+    // built from the blurb, which is what the video titles still use.
+    has_text: rows.length > 0,
+    pages: rows.map((r) => ({
+      page_number: Number(r.page_number),
+      heading: r.heading,
+      // Paragraphs are stored as blank-line separated text.
+      paragraphs: String(r.body).split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean),
+      illustration: r.illustration,
+    })),
+  });
 }));
 
 // -----------------------------------------------------------------------------

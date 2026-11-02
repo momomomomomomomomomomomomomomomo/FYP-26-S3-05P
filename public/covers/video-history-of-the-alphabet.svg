@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The History of the Alphabet">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#432818"/><stop offset="1" stop-color="#99582a"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="356" cy="143" r="2.4" fill="#ffffff" opacity="0.84"/><circle cx="400" cy="237" r="3.3" fill="#ffffff" opacity="0.81"/><circle cx="53" cy="429" r="1.5" fill="#ffffff" opacity="0.45"/><circle cx="586" cy="44" r="2.0" fill="#ffffff" opacity="0.37"/><circle cx="52" cy="296" r="3.4" fill="#ffffff" opacity="0.75"/><circle cx="440" cy="46" r="2.6" fill="#ffffff" opacity="0.60"/><circle cx="128" cy="386" r="1.2" fill="#ffffff" opacity="0.75"/><circle cx="95" cy="31" r="2.9" fill="#ffffff" opacity="0.72"/><circle cx="511" cy="355" r="3.2" fill="#ffffff" opacity="0.72"/><circle cx="31" cy="159" r="1.4" fill="#ffffff" opacity="0.68"/><circle cx="232" cy="143" r="3.1" fill="#ffffff" opacity="0.51"/><circle cx="517" cy="249" r="1.5" fill="#ffffff" opacity="0.58"/><circle cx="343" cy="190" r="1.8" fill="#ffffff" opacity="0.77"/><circle cx="358" cy="165" r="2.9" fill="#ffffff" opacity="0.64"/>
+    <g transform="translate(300 300)">
+      <path d="M-140,-70 C-90,-96 -30,-96 0,-74 C30,-96 90,-96 140,-70 L140,74 C90,48 30,48 0,70 C-30,48 -90,48 -140,74 Z" fill="#ffe6a7"/>
+      <path d="M0,-74 L0,70" stroke="#432818" stroke-width="6" opacity=".5"/>
+      <path d="M-112,-24 L-26,-32 M26,-32 L112,-24" stroke="#432818" stroke-width="5" opacity=".28"/><path d="M-112,0 L-26,-8 M26,-8 L112,0" stroke="#432818" stroke-width="5" opacity=".28"/><path d="M-112,24 L-26,16 M26,16 L112,24" stroke="#432818" stroke-width="5" opacity=".28"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#ffe6a7" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE HISTORY</tspan><tspan x="300" dy="68.2">OF THE</tspan><tspan x="300" dy="68.2">ALPHABET</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">StoryNest</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#ffe6a7">STORYNEST</text>
+</svg>
