@@ -25,6 +25,10 @@ const REACTIONS = [
 ];
 const REACTION_EMOJI = REACTIONS.map((r) => r.emoji);
 
+// How much of a book someone without a reading account may see. Enough to tell
+// whether they want it, not enough to be the book.
+const GUEST_PREVIEW_PAGES = 4;
+
 // A Guest may favourite by email; this stops the endpoint being used to write
 // junk rows in bulk.
 const guestFavouriteLimiter = rateLimit({
@@ -524,14 +528,27 @@ router.get('/guest-favourites/:email', guestFavouriteLimiter, asyncHandler(async
 // the title's scope gets the same 403 and the same "ask a grown-up" path they
 // get on the title page, and never a page of text.
 // -----------------------------------------------------------------------------
-router.get('/:id/pages', requireAuth, requireReader, asyncHandler(async (req, res) => {
+router.get('/:id/pages', asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   const item = await loadVisibleContent(req, id);
 
+  // Who gets the whole book: only an account that reads. A visitor with no
+  // account, and a staff account that has no reader profile, get the opening
+  // few pages so they can judge a title before signing up.
+  const isReader = req.user && (req.user.role === 'ADULT' || req.user.role === 'CHILD');
+  const limit = isReader ? null : GUEST_PREVIEW_PAGES;
+
+  const [{ total }] = await db.query(
+    'SELECT COUNT(*) AS total FROM content_pages WHERE content_id = ?', [id],
+  );
+  const totalPages = Number(total);
+
+  // The cap is applied in the query rather than by trimming afterwards, so the
+  // rest of the text never leaves the database for someone not entitled to it.
   const rows = await db.query(
     `SELECT page_number, heading, body, illustration
-       FROM content_pages WHERE content_id = ? ORDER BY page_number`,
-    [id],
+       FROM content_pages WHERE content_id = ? ORDER BY page_number${limit ? ' LIMIT ?' : ''}`,
+    limit ? [id, limit] : [id],
   );
 
   res.json({
@@ -541,6 +558,12 @@ router.get('/:id/pages', requireAuth, requireReader, asyncHandler(async (req, re
     // A title with no pages is not an error: the reader falls back to a sample
     // built from the blurb, which is what the video titles still use.
     has_text: rows.length > 0,
+    // True when there is more text than was sent. The reader shows the sign-up
+    // gate on the strength of this rather than counting pages itself.
+    preview: !isReader,
+    preview_pages: limit,
+    total_pages: totalPages,
+    more_pages: Math.max(totalPages - rows.length, 0),
     pages: rows.map((r) => ({
       page_number: Number(r.page_number),
       heading: r.heading,

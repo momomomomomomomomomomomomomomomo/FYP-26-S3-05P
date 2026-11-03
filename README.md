@@ -26,7 +26,8 @@ npm start                # http://localhost:3000
 |---|---|---|---|---|---|
 | Browse and preview the catalogue | whole catalogue | **filtered by their parent**, simplified | ✅ | ✅ | ✅ |
 | Favourites, watchlist, progress, badges | favourites by email | ✅ | ✅ | — | — |
-| Read, review or react to a title | — | ✅ | ✅ | — | — |
+| Read a title | **first 4 pages** | ✅ | ✅ | first 4 pages | first 4 pages |
+| Review or react to a title | — | ✅ | ✅ | — | — |
 | Story Chat | — | ✅ (filtered) | ✅ | — | — |
 | Ask to unlock a blocked title | — | ✅ | — | — | — |
 | Create and manage child accounts | — | — | **their own children** | — | via the user list |
@@ -37,6 +38,13 @@ npm start                # http://localhost:3000
 | Reports, announcements, audit log | — | — | — | — | ✅ |
 
 A Guest is simply an unauthenticated visitor — there is no guest row in `users`.
+
+A Guest can open a book and read its first four pages, and is then asked to sign
+up to carry on. The cap is applied in the query that fetches the pages, so the
+rest of the text never leaves the server for someone without an account; the
+page they stopped on travels through the sign-up so they resume there rather
+than starting again. Staff accounts have no reader profile and see the same four
+pages, which is enough to check how a title opens.
 
 **Librarian and Administrator are deliberately separate.** Cataloguing and account
 administration are different duties, so neither role can do the other's work: a

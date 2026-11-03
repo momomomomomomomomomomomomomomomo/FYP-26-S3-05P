@@ -33,7 +33,13 @@
           dob: $('#dob').value,
           password: $('#password').value,
         });
-        global.location.href = '/parent';
+        // A reader who was stopped part-way through a preview arrives with
+        // ?next= pointing at the page they were on, and should land back there
+        // rather than on the family page.
+        const next = new URLSearchParams(global.location.search).get('next');
+        global.location.href = next && next.startsWith('/') && !next.startsWith('//')
+          ? next
+          : '/parent';
       } catch (err) {
         showError(err);
         button.disabled = false;
