@@ -358,10 +358,16 @@ td.actions { white-space: nowrap; }
 .notif-title { font-weight: 600; }
 
 /* --- Modal --------------------------------------------------------------- */
-.modal-backdrop { position: fixed; inset: 0; z-index: 150; background: rgba(17,24,39,.45); display: grid; place-items: center; padding: 20px; }
-.modal { background: #fff; border-radius: var(--radius-lg); padding: 24px; width: min(520px, 100%); max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 150; background: rgba(17,24,39,.45); display: grid; place-items: center; padding: 20px; animation: modal-fade .16s ease-out; }
+.modal { background: #fff; border-radius: var(--radius-lg); padding: 24px; width: min(520px, 100%); max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: modal-rise .2s ease-out; }
+
+/* The dim settles first and the panel follows it up, so a dialog arrives
+   rather than appearing. Both are switched off by the reduced-motion rule at
+   the end of this file. */
+@keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-rise { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-.modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.modal-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
 /* --- Footer -------------------------------------------------------------- */
 .footer { border-top: 1px solid var(--line); margin-top: 50px; padding: 26px 0; color: var(--ink-muted); font-size: .82rem; }
