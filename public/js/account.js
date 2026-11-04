@@ -176,6 +176,81 @@
         }, ['Save changes'])),
       ]));
 
+      // --- interests ---------------------------------------------------------
+      // Story Chat answers "recommend me something" from this list, so it is
+      // worth saying what it is for rather than leaving a row of chips to
+      // explain itself.
+      if (!global.SN.isStaff()) {
+        const interestPanel = el('div', { class: 'panel' });
+        host.appendChild(interestPanel);
+        (async () => {
+          let data;
+          try {
+            data = await global.api.get('/api/me/interests');
+          } catch (err) {
+            showError(err);
+            return;
+          }
+          const chosen = new Set(data.interests || []);
+          const count = el('span', { class: 'hint' });
+          const setCount = () => {
+            count.textContent = `${chosen.size} of ${data.max} chosen`;
+          };
+          setCount();
+
+          const chips = (data.available || []).map((row) => {
+            const chip = el('button', {
+              type: 'button',
+              class: chosen.has(row.tag) ? 'chip on' : 'chip',
+              text: row.tag,
+              title: `${row.titles} title${row.titles === 1 ? '' : 's'}`,
+            });
+            chip.addEventListener('click', () => {
+              if (chosen.has(row.tag)) {
+                chosen.delete(row.tag);
+                chip.classList.remove('on');
+              } else if (chosen.size >= data.max) {
+                showError({ message: `You can pick up to ${data.max}.` });
+                return;
+              } else {
+                chosen.add(row.tag);
+                chip.classList.add('on');
+              }
+              setCount();
+            });
+            return chip;
+          });
+
+          clear(interestPanel);
+          interestPanel.appendChild(el('h2', { style: { fontSize: '1.05rem' } }, ['What you like']));
+          interestPanel.appendChild(el('p', { class: 'muted small', style: { marginTop: 0 } }, [
+            'Pick the topics you enjoy. When you ask Story Chat for something to read '
+            + 'without saying what, it looks here first.',
+          ]));
+          interestPanel.appendChild(chips.length
+            ? el('div', { class: 'chips', style: { marginBottom: '10px' } }, chips)
+            : el('p', { class: 'muted small' }, ['No topics available yet.']));
+          interestPanel.appendChild(el('div', { class: 'row' }, [
+            el('button', {
+              class: 'btn btn-primary',
+              onclick: async (event) => {
+                const button = event.currentTarget;
+                button.disabled = true;
+                try {
+                  await global.api.put('/api/me/interests', { interests: [...chosen] });
+                  showOk('Saved.');
+                } catch (err) {
+                  showError(err);
+                } finally {
+                  button.disabled = false;
+                }
+              },
+            }, ['Save interests']),
+            count,
+          ]));
+        })();
+      }
+
       const current = el('input', { type: 'password', autocomplete: 'current-password' });
       const next = el('input', { type: 'password', autocomplete: 'new-password' });
       const confirm = el('input', { type: 'password', autocomplete: 'new-password' });

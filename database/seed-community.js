@@ -360,11 +360,55 @@ async function seedCommunity(conn, { log = () => {} } = {}) {
       );
 
       children.push({
-        id: childId, name: `${first} ${surname}`, first, age, parentId,
+        id: childId, name: `${first} ${surname}`, first, age, parentId, maxAge,
       });
     }
   }
   log(`  ${adults.length} adult and ${children.length} child accounts`);
+
+  // ---- interests -----------------------------------------------------------
+  // What each reader has told the site they like. Story Chat answers "recommend
+  // me something" from this, so without it the feature has nothing to show on a
+  // fresh install. A child is only given topics their own age cap can reach, so
+  // the chat never offers them something they cannot open.
+  const [tagRows] = await conn.execute(
+    `SELECT t.tag_name, MIN(COALESCE(c.age_rating, 0)) AS min_age, COUNT(*) AS titles
+       FROM tags t
+       JOIN content_tags ct ON ct.tag_id = t.tag_id
+       JOIN content c ON c.content_id = ct.content_id
+      GROUP BY t.tag_id, t.tag_name
+     HAVING titles >= 2
+      ORDER BY t.tag_name`,
+  );
+  const tagByName = new Map();
+  const [idRows] = await conn.execute('SELECT tag_id, tag_name FROM tags');
+  idRows.forEach((r) => tagByName.set(r.tag_name, Number(r.tag_id)));
+
+  let interestCount = 0;
+  async function giveInterests(userId, cap) {
+    const usable = tagRows
+      .filter((r) => cap === null || Number(r.min_age) <= cap)
+      .map((r) => r.tag_name);
+    if (!usable.length) return;
+    const howMany = 2 + Math.floor(rand() * 3); // 2-4
+    const chosen = new Set();
+    let guard = 0;
+    while (chosen.size < Math.min(howMany, usable.length) && guard < 40) {
+      chosen.add(usable[Math.floor(rand() * usable.length)]);
+      guard += 1;
+    }
+    for (const tag of chosen) {
+      await conn.execute(
+        'INSERT IGNORE INTO user_interests (user_id, tag_id) VALUES (?, ?)',
+        [userId, tagByName.get(tag)],
+      );
+      interestCount += 1;
+    }
+  }
+
+  for (const adult of adults) await giveInterests(adult.id, null);
+  for (const kid of children) await giveInterests(kid.id, kid.maxAge);
+  log(`  ${interestCount} interests across the demo readers`);
 
   // ---- who reviews ---------------------------------------------------------
   // Only the demo community writes these reviews. The hand-written ones that

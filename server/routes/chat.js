@@ -7,7 +7,8 @@ const v = require('../utils/validate');
 const audit = require('../utils/audit');
 const badges = require('../utils/badges');
 const { ApiError, asyncHandler } = require('../utils/errors');
-const { generateReply } = require('../utils/chatbot');
+const chatbot = require('../utils/chatbot');
+const { generateReply } = chatbot;
 const { requireAuth, requireReader } = require('../middleware/auth');
 
 const router = express.Router();
@@ -31,7 +32,8 @@ router.use(requireAuth, requireReader);
 /** Loads a chat session the caller owns, or throws. */
 async function loadOwnSession(userId, sessionId) {
   const session = await db.queryOne(
-    'SELECT session_id, user_id, started_at, ended_at FROM chat_sessions WHERE session_id = ?',
+    `SELECT session_id, user_id, started_at, ended_at, pending_tag
+       FROM chat_sessions WHERE session_id = ?`,
     [sessionId],
   );
   if (!session) throw ApiError.notFound('That chat does not exist.');
@@ -104,14 +106,25 @@ router.post('/sessions', asyncHandler(async (req, res) => {
     [req.user.user_id]);
   const sessionId = result.insertId;
 
+  // Open with a question rather than instructions. A reader who is asked
+  // something answers it; a reader who is handed a list of examples has to
+  // invent a request from nothing.
   const name = req.user.name.split(' ')[0];
-  const greeting = `Hi ${name}! I am the StoryNest Story Chat. Tell me what you are in the mood for `
-    + '- "something funny", "a short bedtime story", "videos about space" - and I will find '
-    + 'titles from your library.';
+  const [interests, offerable] = await Promise.all([
+    chatbot.interestsFor(req.user, req.scope),
+    chatbot.offerableTags(req.scope),
+  ]);
+  const opening = chatbot.leadingQuestion({ interests, tags: offerable });
+  const greeting = `Hi ${name}! I am the StoryNest Story Chat. ${opening.text}`;
+
   await db.execute(
     `INSERT INTO chat_msgs (session_id, sender, message_text) VALUES (?, 'CHATBOT', ?)`,
     [sessionId, greeting],
   );
+  if (opening.pendingTag) {
+    await db.execute('UPDATE chat_sessions SET pending_tag = ? WHERE session_id = ?',
+      [opening.pendingTag, sessionId]);
+  }
 
   await audit.logFor(req, {
     activityType: 'CHAT_START',
@@ -177,7 +190,14 @@ router.post('/sessions/:id/messages', chatLimiter, asyncHandler(async (req, res)
 
   // The recommender only ever sees titles this viewer is allowed to open, and
   // re-checks every id it is about to return. See utils/chat-guard.js.
-  const { reply, contentIds, blocked, violations } = await generateReply(text, req.scope, req.user);
+  // `pending_tag` is the topic the chat put forward last time it asked a
+  // question. It is what lets a bare "yes please" mean something.
+  const { reply, contentIds, blocked, violations, pendingTag } = await generateReply(
+    text, req.scope, req.user, { pendingTag: session.pending_tag || null },
+  );
+
+  await db.execute('UPDATE chat_sessions SET pending_tag = ? WHERE session_id = ?',
+    [pendingTag || null, sessionId]);
 
   const botMsg = await db.execute(
     `INSERT INTO chat_msgs (session_id, sender, message_text) VALUES (?, 'CHATBOT', ?)`,

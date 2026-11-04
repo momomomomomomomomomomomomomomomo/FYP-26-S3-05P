@@ -95,6 +95,20 @@ CREATE TABLE content_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE
 );
 
+-- A reader's own topics of interest, chosen on their account page. They are
+-- the same tags the catalogue uses, so an interest maps straight onto content
+-- without a second vocabulary to keep in step. Story Chat falls back to these
+-- when somebody asks for a recommendation without saying what they want.
+CREATE TABLE user_interests (
+    user_id BIGINT NOT NULL,
+    tag_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, tag_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE,
+    INDEX idx_user_interests_tag (tag_id)
+);
+
 CREATE TABLE saved_content (
     saved_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -155,6 +169,9 @@ CREATE TABLE chat_sessions (
     user_id BIGINT NOT NULL,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ended_at TIMESTAMP NULL,
+    -- The topic Story Chat last offered ("fancy a mystery?"), so a bare
+    -- "yes please" can be answered without guessing from the text.
+    pending_tag VARCHAR(100) NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 

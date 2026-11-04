@@ -259,6 +259,12 @@ const INTENT_PATTERNS = {
   THANKS: /^(thanks|thank you|ty|cheers|nice one|great)\b/,
   HELP: /(what can you do|how does this work|who are you|what are you|^help\b|how do i use)/,
   CONTINUE: /(carry on|continue|where was i|what was i reading|my progress|finish(ing)? (my|the) book)/,
+  // Somebody asking for a suggestion without saying what of. There is nothing
+  // to search on, so the answer comes from what they have said they like.
+  ASK_RECOMMEND: /(recommend|suggest|suggestion|what should i (read|watch|pick)|what do i read|surprise me|any(thing)? good|something (to read|to watch|new|else to read)|pick (one|something|a book)|choose (one|something|for me)|help me (choose|pick|decide)|i('?m| am) bored|got any ideas|any ideas|what('?s| is) good)/,
+  // Answers to a question this chat asked a moment ago.
+  AFFIRM: /^(y|ya|yes|yeah|yep|yup|sure|ok|okay|okey|alright|go on|go ahead|please|sounds good|sounds fun|why not|definitely|i guess|that works|lets do it|let's do it)\b/,
+  DENY: /^(n|no|nope|nah|not really|not right now|not now|no thanks|no thank you|something else|anything else|another one|different|other)\b/,
 };
 
 /** Format, length, age and reading level, read straight off the sentence. */
@@ -319,12 +325,26 @@ function analyse(text, catalogueTags = []) {
   // A concept on both sides is being refused, not requested: the negation wins.
   const tags = concepts.filter((t) => !negatedConcepts.includes(t));
 
+  // A yes or a no only counts as an answer when it is all that was said. If a
+  // topic or a format came with it ("yes, something funny"), that is the real
+  // message and the plain reading wins.
+  const bareReply = !tags.length && !negatedConcepts.length && !slots.type
+    && !slots.length && slots.age === null && !slots.readingLevel && tokens.length <= 5;
+
   let intent = 'RECOMMEND';
   if (!normalised) intent = 'EMPTY';
   else if (INTENT_PATTERNS.HELP.test(normalised)) intent = 'HELP';
   else if (INTENT_PATTERNS.THANKS.test(normalised)) intent = 'THANKS';
   else if (INTENT_PATTERNS.GREET.test(normalised) && tokens.length <= 4) intent = 'GREET';
   else if (INTENT_PATTERNS.CONTINUE.test(normalised)) intent = 'CONTINUE';
+  else if (bareReply && INTENT_PATTERNS.AFFIRM.test(normalised)) intent = 'AFFIRM';
+  else if (bareReply && INTENT_PATTERNS.DENY.test(normalised)) intent = 'DENY';
+  // Asking for a suggestion with no topic attached. A topic in the same
+  // sentence makes it an ordinary search instead; a format or a length does
+  // not, so "recommend a short video" still narrows what comes back.
+  else if (!tags.length && INTENT_PATTERNS.ASK_RECOMMEND.test(normalised)) {
+    intent = 'ASK_RECOMMEND';
+  }
 
   const hasSignal = Boolean(
     tags.length || slots.type || slots.length || slots.age
@@ -332,6 +352,11 @@ function analyse(text, catalogueTags = []) {
   );
   // Someone chatting about something that is not a story at all.
   if (intent === 'RECOMMEND' && !hasSignal && contentTokens.length > 0) intent = 'UNCLEAR';
+  // "recommend me something" carries no topic by design: it is a clear request,
+  // not an unclear one, so it must not be downgraded here.
+  if (intent === 'UNCLEAR' && INTENT_PATTERNS.ASK_RECOMMEND.test(normalised)) {
+    intent = 'ASK_RECOMMEND';
+  }
 
   return {
     raw: String(text || ''),
