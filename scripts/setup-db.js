@@ -178,6 +178,24 @@ async function run() {
     [leoId, adaId],
   );
 
+  // What each demo reader has said they like. Story Chat answers an open
+  // request - "recommend me something" - from this list, so the demo accounts
+  // need one for the feature to show itself. None of these crosses the age cap
+  // or the blocked genre set just above: Leo has no Mystery, Ada no Sci-Fi.
+  //
+  // The assignments themselves happen after the books are in. Half of these
+  // topics only exist as tags once database/books/ has been imported, and a
+  // name with no tag behind it inserts nothing at all.
+  async function setInterests(userId, tagNames) {
+    for (const tagName of tagNames) {
+      await conn.execute(
+        `INSERT IGNORE INTO user_interests (user_id, tag_id)
+         SELECT ?, tag_id FROM tags WHERE tag_name = ?`,
+        [userId, tagName],
+      );
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Test accounts - ADMIN, ADULT and CHILD, one each.
   // ---------------------------------------------------------------------------
@@ -306,6 +324,14 @@ async function run() {
 
   // A library with no readers in it looks unfinished. This adds demo families,
   // reviews on every title, and the reading history behind those reviews.
+  await setInterests(leoId, ['Dinosaurs', 'Space', 'Animals']);
+  await setInterests(adaId, ['Fantasy', 'Mystery', 'Art']);
+  await setInterests(samId, ['Animals', 'Food', 'Friendship']);
+  await setInterests(parentId, ['Nature', 'History']);
+  await setInterests(parent2Id, ['Humour', 'Ocean']);
+  await setInterests(testChildId, ['Robots', 'Science']);
+  await setInterests(testParentId, ['Adventure', 'Poetry']);
+
   say('5/5  Filling the library with readers ...');
   const community = await seedCommunity(conn);
 

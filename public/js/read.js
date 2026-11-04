@@ -129,6 +129,21 @@
     }, 200);
   }
 
+  /**
+   * Reserves exactly as much room at the foot of the page as the fixed control
+   * bar actually takes.
+   *
+   * The bar's height is not a constant: on a narrow screen the page label and
+   * the buttons do not fit on one line and it wraps to two, and a guessed
+   * figure then leaves the last line of the story underneath it. Measuring is
+   * the only thing that is right at every width.
+   */
+  function reserveBarSpace() {
+    const bar = document.querySelector('.reader-bar');
+    if (!bar) return;
+    document.documentElement.style.setProperty('--reader-bar-h', `${Math.ceil(bar.offsetHeight)}px`);
+  }
+
   function renderPage() {
     const reader = $('#reader');
     const current = pages[page];
@@ -154,6 +169,7 @@
     $('#nextBtn').textContent = last
       ? (morePages ? 'Read on \u2192' : 'Finish \u2713')
       : 'Next \u2192';
+    reserveBarSpace();
     global.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -283,6 +299,8 @@
       }
     });
 
+    reserveBarSpace();
+    global.addEventListener('resize', reserveBarSpace);
     global.addEventListener('beforeunload', () => clearInterval(heartbeat));
   }
 

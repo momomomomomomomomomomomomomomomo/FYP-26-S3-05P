@@ -29,6 +29,7 @@ npm start                # http://localhost:3000
 | Read a title | **first 4 pages** | ✅ | ✅ | first 4 pages | first 4 pages |
 | Review or react to a title | — | ✅ | ✅ | — | — |
 | Story Chat | — | ✅ (filtered) | ✅ | — | — |
+| Interests, used by Story Chat | — | ✅ | ✅ | — | — |
 | Ask to unlock a blocked title | — | ✅ | — | — | — |
 | Create and manage child accounts | — | — | **their own children** | — | via the user list |
 | Age limits, blocked genres, screen time | — | — | ✅ | — | — |
@@ -88,6 +89,36 @@ The language model itself (`server/utils/nlp.js`) never touches the database and
 knows nothing about who is asking — it is handed documents that have already
 been filtered and only ranks them.
 
+### Starting a recommendation
+
+Not every reader arrives knowing what they want. Two things handle that.
+
+**Interests.** A reader picks the topics they enjoy on their account page, under
+Profile. Asked for something with no subject attached — "recommend me
+something", "surprise me", "I'm bored" — Story Chat searches those instead of
+falling back to whatever is most popular, and says so: *"Going on what you have
+said you like — Space and Dinosaurs — here is what I found."*
+
+Interests are the catalogue's own tags, so an interest maps straight onto
+content with no second vocabulary to keep in step. They are held to the same
+scope as everything else, twice over: a topic a child cannot see is not offered
+on the account page and is refused if the request is forged, and one that
+becomes unreachable later — a genre the parent blocks afterwards — drops out of
+the recommendation quietly rather than producing a promise the search cannot
+keep.
+
+**Leading questions.** Rather than open with instructions, the chat asks
+something answerable: *"What do you feel like reading today?"*, *"Are you in the
+mood to experience fantasy?"*, *"Shall I look for a book, or would a video suit
+you better?"* Over two hundred distinct questions are reachable in the default
+library — fifteen open ones, plus nine topic templates and four interest
+templates filled from the tags that reader's own library holds, so an offer is
+never a dead end.
+
+When a question names a topic, the session remembers it in
+`chat_sessions.pending_tag`, so a bare *"yes please"* means something and
+*"no thanks"* offers a different one rather than being searched for as words.
+
 ## How a child's library is filtered
 
 All filtering happens in SQL, in `server/utils/access.js`, so a hidden title is
@@ -104,9 +135,9 @@ If `parental_controls.allow_content` is off, only approved titles appear.
 ## A library that looks used
 
 `npm run db:setup` does not leave an empty shelf. It seeds 26 demo families —
-26 adults and 43 children — who between them have written **446 reviews across
+26 adults and 43 children — who between them have written **459 reviews across
 all 86 titles**, with the reading progress, reactions and favourites behind
-them. Ratings run from 2.5 to 5.0 stars, dated across the past twenty months.
+them. Ratings run from 3.0 to 5.0 stars, dated across the past twenty months.
 
 Everything about it is deterministic, so a rebuild reproduces the same library
 rather than a different one — on any machine, on any day, since the dates are
@@ -176,7 +207,7 @@ server — no build step, no framework, no bundler.
 ## Layout
 
 ```
-database/   schema.sql (23 tables), seed.sql (sample library),
+database/   schema.sql (24 tables), seed.sql (sample library),
             storynest-full.sql (the finished database, for importing)
 scripts/    setup-db.js — one command to build the database
 server/     Express app: config, db pool, middleware, routes, access rules

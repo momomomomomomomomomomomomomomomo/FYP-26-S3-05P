@@ -106,7 +106,7 @@ npm run db:setup
 
 This one command:
 
-1. creates the `storynest` database and all 23 tables (`database/schema.sql`),
+1. creates the `storynest` database and all 24 tables (`database/schema.sql`),
 2. loads the sample titles, tags and badges (`database/seed.sql`),
 3. creates the demo accounts and the per-role test accounts, with passwords
    hashed using bcrypt,
@@ -130,7 +130,7 @@ Target: mysql://root@127.0.0.1:3306/storynest
 Done.
   80 accounts, 86 titles, 36 tags.
   78 of those titles are full books, with 2029 pages of text.
-  446 reviews from 26 demo families (43 children).
+  459 reviews from 26 demo families (43 children).
 ```
 
 followed by the list of sign-ins. The accounts and passwords are also kept in
@@ -154,7 +154,7 @@ mysql -u root -p < database/storynest-full.sql
 ```
 
 That file holds the schema and every row, drops and recreates `storynest`, and
-produces a database identical to the one `npm run db:setup` builds — all 23
+produces a database identical to the one `npm run db:setup` builds — all 24
 tables match row for row. Use whichever route suits the machine; both end up in
 the same place.
 
@@ -260,7 +260,7 @@ mysql -u root -p storynest -e "SELECT user_id, role, name, email FROM users;"
 ```
 storynest/
 ├── database/
-│   ├── schema.sql          # all 23 tables — drops and recreates the database
+│   ├── schema.sql          # all 24 tables — drops and recreates the database
 │   ├── seed.sql            # sample titles, tags and badges
 │   ├── storynest-full.sql  # the finished database, schema and all rows
 │   ├── books/              # 78 full books, one file each, pages and all

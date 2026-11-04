@@ -5,6 +5,8 @@
    ========================================================================== */
 
 :root {
+  /* Height reserved at the foot of the reader for its fixed controls. */
+  --reader-bar-h: 62px;
   --blue-600: #2563eb;
   --blue-500: #3b82f6;
   --blue-100: #dbeafe;
@@ -297,7 +299,47 @@ td.actions { white-space: nowrap; }
 /* --- Reader -------------------------------------------------------------- */
 .reader { background: #fffdf7; border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 34px; font-size: 1.02rem; line-height: 1.8; max-width: 720px; margin: 0 auto; }
 .reader p { margin-bottom: 1.1em; }
-.reader-bar { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 0; margin-top: 20px; }
+/* The page controls are fixed to the window, not placed after the text.
+   Anything that sits in the flow moves when the text above it changes length,
+   and these have to be in the same place on every page: turning a page should
+   not mean finding the button again. Being fixed also makes them immune to the
+   width of whatever is on the page, which is what moved them sideways before. */
+.reader-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  background: var(--bg); border-top: 1px solid var(--line); padding: 12px 0;
+}
+.reader-bar > .spread { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
+/* "Next", "Read on" and "Finish" are different lengths; without a floor under
+   the width, the Back button beside it shuffles along on the last page. */
+.reader-bar #nextBtn { min-width: 104px; justify-content: center; }
+.reader-bar #prevBtn { min-width: 88px; justify-content: center; }
+
+/* Keep the page controls still.
+   Pages hold anything from one line to several paragraphs, so left to itself
+   the panel changes height and drags Back and Next up and down the screen with
+   it - about a hundred pixels between one page and the next, which means
+   chasing the button with the mouse to turn each page. Letting the reading
+   column fill the window instead pins the bar to the bottom of the screen: the
+   panel absorbs the difference in length, and the buttons do not move. On a
+   page long enough to scroll, the sticky rule above takes over and holds the
+   bar in the same place. */
+body.reader-page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+/* `.wrap` centres itself with `margin: 0 auto`. Auto side margins on a flex
+   item win over stretching, so without an explicit width this column would
+   shrink to fit whichever page is showing - and take the controls with it. */
+body.reader-page #main {
+  width: 100%; flex: 1 1 auto; display: flex; flex-direction: column;
+  padding-bottom: var(--reader-bar-h);
+}
+body.reader-page .reader { flex: 1 1 auto; display: flex; flex-direction: column; }
+/* With the panel now a constant height, a two-line page would otherwise sit in
+   the top corner of a tall empty box. Auto margins on the outer children
+   centre the text instead. They are used rather than justify-content because a
+   page longer than the panel still has to overflow downwards and scroll: auto
+   margins collapse to nothing in that case, where centring would cut the top
+   of the page off. */
+body.reader-page .reader > :first-child { margin-top: auto; }
+body.reader-page .reader > :last-child { margin-bottom: auto; }
 
 /* --- Story Chat ---------------------------------------------------------- */
 .chat-shell {
