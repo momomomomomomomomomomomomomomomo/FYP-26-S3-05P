@@ -234,6 +234,24 @@ router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // -----------------------------------------------------------------------------
+// DELETE /api/auth/me - delete your own account
+// -----------------------------------------------------------------------------
+router.delete('/me', requireAuth, asyncHandler(async (req, res) => {
+
+  await db.execute(
+    'DELETE FROM users WHERE user_id = ?',
+    [req.user.user_id],
+  );
+
+  clearAuthCookie(res);
+
+  res.json({
+    ok: true,
+    message: 'Account deleted.',
+  });
+}));
+
+// -----------------------------------------------------------------------------
 // POST /api/auth/change-password
 // -----------------------------------------------------------------------------
 router.post('/change-password', requireAuth, authLimiter, asyncHandler(async (req, res) => {

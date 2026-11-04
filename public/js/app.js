@@ -393,6 +393,7 @@
     { href: '/library', label: 'Library' },
     { href: '/watch', label: 'Watch' },
     { href: '/about', label: 'About Us' },
+    { href: '/privacy', label: 'Privacy Policy' },
   ];
 
   function renderNav(active) {
