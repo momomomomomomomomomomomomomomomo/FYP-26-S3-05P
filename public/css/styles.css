@@ -299,6 +299,27 @@ td.actions { white-space: nowrap; }
 .reader p { margin-bottom: 1.1em; }
 .reader-bar { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding: 12px 0; margin-top: 20px; }
 
+/* Keep the page controls still.
+   Pages hold anything from one line to several paragraphs, so left to itself
+   the panel changes height and drags Back and Next up and down the screen with
+   it - about a hundred pixels between one page and the next, which means
+   chasing the button with the mouse to turn each page. Letting the reading
+   column fill the window instead pins the bar to the bottom of the screen: the
+   panel absorbs the difference in length, and the buttons do not move. On a
+   page long enough to scroll, the sticky rule above takes over and holds the
+   bar in the same place. */
+body.reader-page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+body.reader-page #main { flex: 1 1 auto; display: flex; flex-direction: column; }
+body.reader-page .reader { flex: 1 1 auto; display: flex; flex-direction: column; }
+/* With the panel now a constant height, a two-line page would otherwise sit in
+   the top corner of a tall empty box. Auto margins on the outer children
+   centre the text instead. They are used rather than justify-content because a
+   page longer than the panel still has to overflow downwards and scroll: auto
+   margins collapse to nothing in that case, where centring would cut the top
+   of the page off. */
+body.reader-page .reader > :first-child { margin-top: auto; }
+body.reader-page .reader > :last-child { margin-bottom: auto; }
+
 /* --- Story Chat ---------------------------------------------------------- */
 .chat-shell {
   display: flex; flex-direction: column;
