@@ -95,13 +95,13 @@ function readContentBody(body, { partial = false } = {}) {
     out.duration_minutes = v.int(body.duration_minutes, 'Duration', { min: 0, max: 1000, required: false });
   }
   if (!partial || body.cover_image_url !== undefined) {
-    out.cover_image_url = v.str(body.cover_image_url, 'Cover image URL', { required: false, max: 1000 });
+    out.cover_image_url = v.url(body.cover_image_url, 'Cover image URL', { required: false });
   }
   if (!partial || body.external_link !== undefined) {
-    out.external_link = v.str(body.external_link, 'External link', { required: false, max: 1000 });
+    out.external_link = v.url(body.external_link, 'External link', { required: false });
   }
   if (!partial || body.preview_url !== undefined) {
-    out.preview_url = v.str(body.preview_url, 'Preview or trailer link', { required: false, max: 1000 });
+    out.preview_url = v.url(body.preview_url, 'Preview or trailer link', { required: false });
   }
   return out;
 }

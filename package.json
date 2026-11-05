@@ -11,14 +11,17 @@
     "db:reset": "node scripts/setup-db.js --force",
     "books:import": "node scripts/import-books.js",
     "books:covers": "node scripts/make-covers.js",
-    "seed:community": "node scripts/seed-community.js"
+    "seed:community": "node scripts/seed-community.js",
+    "test": "node tests/run.js"
   },
-  "engines": { "node": ">=18.0.0" },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^5.3.0",
     "express-rate-limit": "^7.4.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.0"

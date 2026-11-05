@@ -212,6 +212,22 @@ database/   schema.sql (24 tables), seed.sql (sample library),
 scripts/    setup-db.js — one command to build the database
 server/     Express app: config, db pool, middleware, routes, access rules
 public/     the front end: one HTML file and one JS file per page
+tests/      run.js and six suites — npm test
 ```
 
 The API is documented by section in `INSTALLATION.md` §9–10.
+
+## Tests
+
+```bash
+npm test
+```
+
+214 checks across six suites: the shape of a fresh install, every role against
+every protected endpoint, the things people actually do, what a restricted
+child may see, input that should be refused, and Story Chat. They build their
+own database and server, and drop both afterwards, so they never touch the one
+in your `.env` — which is what lets them check destructive things like whether
+a librarian can really delete a title.
+
+There is no test framework to install. `npm test -- scope` runs one suite.

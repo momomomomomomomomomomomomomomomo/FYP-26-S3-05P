@@ -534,11 +534,48 @@
   // --- modal ---------------------------------------------------------------
   function modal(title, contentNode, footerNodes) {
     const backdrop = el('div', { class: 'modal-backdrop' });
-    const close = () => backdrop.remove();
+    // Whatever had the keyboard before the dialog opened gets it back when the
+    // dialog closes, so a keyboard user is not dropped at the top of the page.
+    const opener = document.activeElement;
+
+    /** Everything inside the dialog a keyboard can reach, in document order. */
+    const focusable = () => Array.from(backdrop.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]),'
+      + ' textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter((n) => n.offsetParent !== null);
+
+    // Escape closes, and Tab is kept inside: without this the next Tab leaves
+    // the dialog for the page behind it, which is still there and still
+    // clickable but is not what the reader is looking at.
+    const onKey = (e) => {
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      } else if (!backdrop.contains(document.activeElement)) {
+        e.preventDefault(); first.focus();
+      }
+    };
+
+    // The Escape handler is unbound by close() itself, whichever way the dialog
+    // was dismissed. Removing it only inside the Escape branch left a listener
+    // behind every time somebody used the X or clicked the backdrop, and they
+    // accumulated for as long as the page stayed open.
+    const close = () => {
+      document.removeEventListener('keydown', onKey);
+      backdrop.remove();
+      if (opener && typeof opener.focus === 'function' && document.contains(opener)) {
+        opener.focus();
+      }
+    };
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-    document.addEventListener('keydown', function esc(e) {
-      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
-    });
+    document.addEventListener('keydown', onKey);
 
     backdrop.appendChild(el('div', { class: 'modal' }, [
       el('div', { class: 'modal-head' }, [
@@ -549,6 +586,12 @@
       footerNodes ? el('div', { class: 'modal-foot' }, footerNodes) : null,
     ]));
     document.body.appendChild(backdrop);
+    // Announce it as a dialog, and put the keyboard inside it.
+    backdrop.setAttribute('role', 'dialog');
+    backdrop.setAttribute('aria-modal', 'true');
+    backdrop.setAttribute('aria-label', title);
+    const firstFocusable = focusable()[0];
+    if (firstFocusable) firstFocusable.focus();
     return { close, node: backdrop };
   }
 

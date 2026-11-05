@@ -179,6 +179,34 @@ Open <http://localhost:3000> in your browser.
 
 For development, `npm run dev` restarts the server whenever you save a file.
 
+### Running the tests
+
+```bash
+npm test                 # every suite
+npm test -- scope        # one suite, by name
+npm test -- --keep       # leave the test database up afterwards, to poke at
+```
+
+The tests build their own database (`storynest_test`), start their own server
+on port 3999, run against that, and drop the database when they finish. They
+never touch the database named in your `.env`, which is what makes it safe for
+them to check destructive things like whether a librarian can really delete a
+title.
+
+There are six suites, run in this order:
+
+| Suite | What it covers |
+|---|---|
+| `data` | The shape of a fresh install: no broken references, every book has pages and cover art, no child holds an interest they are not allowed to be offered |
+| `permissions` | Every role against every protected endpoint — a route added without a guard fails here |
+| `flows` | What people actually do: browsing, searching, favourites, reading, reviews, unlock requests, parental controls, the catalogue, administration, Story Chat |
+| `scope` | What a restricted child may see, computed from the rules and checked against every endpoint that returns titles — including guessing ids and probing Story Chat |
+| `validation` | Input that should be refused: bad ids, out-of-range numbers, oversized text, `javascript:` links, malformed payloads |
+| `chatbot` | Intent classification, interest-led recommendations, the question-and-answer flow, and that no suggestion ever leaves the reader's scope |
+
+Nothing extra is installed to run them: no test framework, so `npm test` works
+on a clean checkout.
+
 ---
 
 ## 7. Sign in and look around
@@ -310,7 +338,44 @@ storynest/
 
 ---
 
-## 10. Notes for the marker / next developer
+## 10. Running it somewhere real
+
+Everything above sets the site up on one machine for marking and demonstration.
+If it is ever put on a server that other people reach, three things change.
+
+**Serve it over HTTPS.** The sign-in cookie is marked `Secure` as soon as
+`NODE_ENV=production`, which means the browser will only send it over HTTPS —
+over plain HTTP nobody would be able to stay signed in. The app also starts
+sending `Strict-Transport-Security` in production, so a browser that has seen
+the site once will refuse to fall back to HTTP. Put it behind a reverse proxy
+that terminates TLS (nginx, Caddy, or a platform that does it for you); the app
+already sets `trust proxy`, so it reads the real client address from
+`X-Forwarded-For` rather than seeing every request as coming from the proxy.
+
+**Set a real `JWT_SECRET`.** The default in `server/config.js` is a development
+placeholder, and the app refuses to start in production while it is still in
+place. Any long random string will do:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
+
+**Change every password in `ACCOUNTS.md`.** They are published in this
+repository's documentation; they exist so a marker can sign in, not to protect
+anything.
+
+```bash
+NODE_ENV=production JWT_SECRET=... npm start
+```
+
+In production the app also stops explaining itself in error messages: a
+database outage returns "The site is temporarily unavailable" rather than the
+advice about checking MySQL and `.env`, which is for whoever is running it, not
+for whoever is reading.
+
+---
+
+## 11. Notes for the marker / next developer
 
 **The four kinds of user**
 
@@ -320,9 +385,9 @@ storynest/
 | Add, edit or remove a title | ❌ | ❌ | ❌ | ❌ — that is the **Librarian's** job |
 | Have a reader profile (favourites, progress, badges, Story Chat) | ❌ | ✅ | ✅ | ❌ — staff accounts have none |
 | Preview a title (blurb, opening lines, trailer) | ✅ | ✅ | ✅ | ✅ |
-| Save favourites, track progress, earn badges | ✅ favourites, against an email | ✅ | ✅ | ✅ |
-| React to a title with one emoji | ❌ | ✅ | ✅ | ✅ |
-| Story Chat | ❌ | ✅ (filtered) | ✅ | ✅ |
+| Save favourites, track progress, earn badges | ✅ favourites, against an email | ✅ | ✅ | ❌ — no reader profile |
+| React to a title with one emoji | ❌ | ✅ | ✅ | ❌ — no reader profile |
+| Story Chat | ❌ | ✅ (filtered) | ✅ | ❌ — no reader profile |
 | Ask to unlock a blocked title | — | ✅ | — | — |
 | Create and manage child accounts | ❌ | ❌ | ✅ **their own children only** | ✅ all |
 | Set age limits, blocked genres, screen time | ❌ | ❌ | ✅ | ❌ — a family belongs to its parent |
