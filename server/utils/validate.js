@@ -66,6 +66,32 @@ function dateOfBirth(value, field = 'Date of birth') {
   return s;
 }
 
+/**
+ * A link that is safe to put in an href or a src.
+ *
+ * Only http, https and same-site paths are allowed. Without this a `javascript:`
+ * URL saved against a title would become a clickable link in every reader's
+ * browser, including a child's - a librarian can edit the catalogue but is not
+ * meant to be able to run code in somebody else's session. The page's
+ * Content-Security-Policy stops such a link from doing anything today; this is
+ * so that the data is not dangerous in the first place.
+ */
+function url(value, field, { max = 1000, required = false } = {}) {
+  const raw = str(value, field, { max, required });
+  if (raw === null) return null;
+  if (raw.startsWith('/') && !raw.startsWith('//')) return raw;
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw ApiError.badRequest(`${field} must be a web address starting with http:// or https://.`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw ApiError.badRequest(`${field} must be a web address starting with http:// or https://.`);
+  }
+  return raw;
+}
+
 function oneOf(value, field, allowed, { required = true } = {}) {
   if (value === undefined || value === null || value === '') {
     if (required) throw ApiError.badRequest(`${field} is required.`);
@@ -110,6 +136,7 @@ function offset(value) {
 }
 
 module.exports = {
+  url,
   str, int, email, loginId, password, childPassword, dateOfBirth,
   oneOf, oneOfExact, bool, limit, offset, EMAIL_RE, LOGIN_ID_RE,
 };

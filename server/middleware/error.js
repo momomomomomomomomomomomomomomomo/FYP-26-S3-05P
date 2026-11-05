@@ -23,7 +23,12 @@ function errorHandler(err, req, res, next) {
     message = 'That referenced record does not exist.';
   } else if (err.code === 'ECONNREFUSED' || err.code === 'ER_ACCESS_DENIED_ERROR') {
     status = 503;
-    message = 'The database is not reachable. Check that MySQL is running and your .env is correct.';
+    // The hint about MySQL and .env is for whoever is running the app, not for
+    // whoever is using it. In production it tells a stranger how the thing is
+    // put together and is no use to the reader, who can only try again later.
+    message = config.env === 'production'
+      ? 'The site is temporarily unavailable. Please try again shortly.'
+      : 'The database is not reachable. Check that MySQL is running and your .env is correct.';
   }
 
   if (status >= 500) console.error('[error]', err);

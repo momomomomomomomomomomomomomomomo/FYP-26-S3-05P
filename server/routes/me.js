@@ -62,7 +62,16 @@ router.get('/interests', asyncHandler(async (req, res) => {
 
 // PUT /api/me/interests  - replace the list
 router.put('/interests', asyncHandler(async (req, res) => {
-  const raw = Array.isArray(req.body.interests) ? req.body.interests : [];
+  // An explicit empty list clears the interests, which is a real thing to want.
+  // Anything that is not a list at all is a malformed request, and treating it
+  // as "clear everything" would quietly throw away what the reader had saved.
+  if (req.body.interests !== undefined && !Array.isArray(req.body.interests)) {
+    throw ApiError.badRequest('Interests must be a list of topic names.');
+  }
+  if (req.body.interests === undefined) {
+    throw ApiError.badRequest('Interests are required. Send an empty list to clear them.');
+  }
+  const raw = req.body.interests;
   if (raw.length > MAX_INTERESTS) {
     throw ApiError.badRequest(`Pick up to ${MAX_INTERESTS} interests.`);
   }
