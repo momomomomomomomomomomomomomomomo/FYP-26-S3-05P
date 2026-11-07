@@ -107,6 +107,57 @@ module.exports = {
     }
     t.check('catalogue statistics load', (await librarian.get('/api/catalog/stats')).status === 200);
 
+    // The catalogue dashboard keeps books and videos on separate tabs, each
+    // with its own search box, so it leans on type and q working together.
+    const books = await librarian.get('/api/content?type=BOOK&limit=300&sort=title');
+    const videos = await librarian.get('/api/content?type=VIDEO&limit=300&sort=title');
+    t.check('the book shelf holds only books',
+      books.status === 200 && books.body.items.length > 0
+      && books.body.items.every((i) => i.content_type === 'BOOK'),
+      books.body && books.body.items && books.body.items.length);
+    t.check('the video shelf holds only videos',
+      videos.status === 200 && videos.body.items.length > 0
+      && videos.body.items.every((i) => i.content_type === 'VIDEO'),
+      videos.body && videos.body.items && videos.body.items.length);
+    t.check('the two shelves together are the whole catalogue',
+      books.body.total + videos.body.total === (await librarian.get('/api/content?limit=1')).body.total,
+      `${books.body.total} + ${videos.body.total}`);
+
+    const byTitle = await librarian.get('/api/content?type=BOOK&q=dinosaur&limit=300');
+    t.check('searching a shelf by title narrows it',
+      byTitle.body.items.length > 0 && byTitle.body.items.length < books.body.total
+      && byTitle.body.items.every((i) => i.content_type === 'BOOK'),
+      byTitle.body.items.map((i) => i.title));
+
+    const byCategory = await librarian.get('/api/content?type=BOOK&q=Pirates&limit=300');
+    t.check('searching a shelf by category narrows it',
+      byCategory.body.items.length > 0
+      && byCategory.body.items.every((i) => (i.tags || []).some((x) => /pirate/i.test(x))),
+      byCategory.body.items.map((i) => i.title));
+
+    const byAuthor = await librarian.get('/api/content?type=BOOK&q=Tom Bridger&limit=300');
+    t.check('searching a shelf by author narrows it',
+      byAuthor.body.items.length > 0
+      && byAuthor.body.items.every((i) => /bridger/i.test(i.author_creator || '')),
+      byAuthor.body.items.length);
+
+    // The Categories tab filters the loaded list by name and by kind, so both
+    // have to be on every row it is given.
+    const tagList = await librarian.get('/api/content/tags');
+    t.check('every category carries a name and a kind to filter on',
+      tagList.status === 200 && tagList.body.items.length > 0
+      && tagList.body.items.every((x) => typeof x.tag_name === 'string' && x.tag_name
+        && ['GENRE', 'THEME', 'TOPIC'].includes(x.category)),
+      tagList.body && tagList.body.items && tagList.body.items[0]);
+    t.check('and a count of what uses it',
+      tagList.body.items.every((x) => Number.isFinite(Number(x.content_count))),
+      tagList.body.items[0]);
+
+    const noMatch = await librarian.get('/api/content?type=BOOK&q=zzzznothinghere&limit=300');
+    t.check('a shelf search with no matches returns nothing',
+      noMatch.status === 200 && noMatch.body.items.length === 0,
+      noMatch.body && noMatch.body.items && noMatch.body.items.length);
+
     // --- administration --------------------------------------------------------
     t.check('the administrator lists accounts',
       (await admin.get('/api/admin/users?limit=5')).status === 200);
