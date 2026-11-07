@@ -238,6 +238,11 @@ th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--lin
 th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-muted); font-weight: 700; white-space: nowrap; }
 tbody tr:hover { background: var(--bg-sunken); }
 td.actions { white-space: nowrap; }
+/* The buttons in an actions cell are appended next to each other with no
+   whitespace between them, so without this Edit and Delete end up touching -
+   which reads as one wide control and puts Delete right under the cursor of
+   someone aiming for Edit. */
+td.actions > * + * { margin-left: 8px; }
 
 .pill { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--bg-panel); color: var(--ink-soft); }
 .pill-admin  { background: #ede9fe; color: var(--purple); }

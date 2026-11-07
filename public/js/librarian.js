@@ -84,36 +84,77 @@
   }
 
   // --- content --------------------------------------------------------------
-  async function loadContent() {
-    const host = panel('content');
-    clear(host);
+  // --- the shelves ----------------------------------------------------------
+  // Books and videos are kept apart because they are different jobs: a book
+  // needs pages and a reading level, a video needs a link and a running time,
+  // and a librarian working through one is not thinking about the other.
+  const SHELVES = {
+    books: { type: 'BOOK', noun: 'book', plural: 'books' },
+    videos: { type: 'VIDEO', noun: 'video', plural: 'videos' },
+  };
 
-    host.appendChild(el('div', { class: 'panel-head' }, [
-      el('h3', { style: { fontSize: '.95rem' } }, ['Catalogue']),
-      el('div', { class: 'row' }, [
-        el('button', { class: 'btn btn-outline btn-sm', onclick: openImportDialog },
-          ['Bulk import']),
-        el('button', { class: 'btn btn-primary btn-sm', onclick: () => openContentEditor(null) },
-          ['Add a title']),
-      ]),
-    ]));
+  // What is typed in each shelf's search box, kept here so that reloading the
+  // list after an edit or a deletion does not throw the filter away.
+  const search = { books: '', videos: '', categories: '' };
 
-    // Every title, not a page of them: a librarian cannot edit what the table
-    // does not list. The server caps this at 300.
-    const data = await global.api.get('/api/content', { limit: 300, sort: 'title' });
+  function describeFilter(shelf, shown, total) {
+    const term = search[shelf];
+    const { plural } = SHELVES[shelf];
+    if (!term) {
+      return `${total} ${total === 1 ? SHELVES[shelf].noun : plural} on the shelves.`;
+    }
+    if (!shown) return `Nothing matches "${term}".`;
+    return `${shown} of ${total} ${plural} match "${term}".`;
+  }
+
+  /** Fetches and draws just the table, leaving the search box where it is. */
+  async function refreshShelf(shelf) {
+    const { type } = SHELVES[shelf];
+    const body = $(`#shelf-${shelf}-results`);
+    if (!body) return;
+
+    const query = { limit: 300, sort: 'title', type };
+    const term = search[shelf].trim();
+    if (term) query.q = term;
+
+    let data;
+    try {
+      data = await global.api.get('/api/content', query);
+    } catch (err) {
+      showError(err);
+      return;
+    }
+    // A second keystroke may have landed while this was in flight; the newer
+    // request owns the table.
+    if (search[shelf].trim() !== term) return;
+
+    const totalOnShelf = Number($(`#shelf-${shelf}-total`).dataset.total || data.total);
+
+    clear(body);
+    body.appendChild(el('p', {
+      class: 'tiny muted',
+      style: { margin: '0 0 10px' },
+      text: describeFilter(shelf, data.items.length, totalOnShelf),
+    }));
+
+    if (!data.items.length) {
+      body.appendChild(el('p', { class: 'muted small', style: { margin: 0 }, text: term
+        ? 'Try part of a title, an author, or a category name.'
+        : `There are no ${SHELVES[shelf].plural} in the catalogue yet.` }));
+      return;
+    }
 
     const rows = data.items.map((c) => el('tr', {}, [
       el('td', {}, [
         el('a', { href: `/content?id=${c.content_id}`, text: c.title }),
         el('div', { class: 'tiny muted', text: c.author_creator || '' }),
       ]),
-      el('td', { class: 'small', text: c.content_type }),
       el('td', { class: 'small', text: c.age_rating === null ? '—' : `${c.age_rating}+` }),
       el('td', { class: 'small muted', text: fmt.level(c.reading_level) }),
       el('td', { class: 'small muted', text: (c.tags || []).join(', ') }),
       el('td', { class: 'actions' }, [
         el('button', {
-          class: 'btn btn-sm btn-outline', onclick: () => openContentEditor(c),
+          class: 'btn btn-sm btn-outline', onclick: () => openContentEditor(c, shelf),
         }, ['Edit']),
         el('button', {
           class: 'btn btn-sm btn-danger',
@@ -123,28 +164,112 @@
               try {
                 await global.api.del(`/api/catalog/content/${c.content_id}`);
                 toast('Removed.', 'ok');
-                loadContent();
+                await loadShelf(shelf);
               } catch (err) { showError(err); }
             }),
         }, ['Delete']),
       ]),
     ]));
 
-    host.appendChild(el('div', { class: 'panel' }, [
-      el('p', { class: 'tiny muted', style: { margin: '0 0 10px' }, text:
-        `Showing ${data.items.length} of ${data.total} title${data.total === 1 ? '' : 's'}.`
-        + (data.items.length < data.total
-          ? ' The list is capped; search the library to reach the rest.' : '') }),
-      table(['Title', 'Type', 'Ages', 'Level', 'Tags', ''], rows),
-    ]));
+    body.appendChild(table(['Title', 'Ages', 'Level', 'Categories', ''], rows));
   }
 
-  function openContentEditor(existing) {
+  /**
+   * Draws a shelf: the heading, the search box, and the table under it.
+   *
+   * The search box is only built once per visit to the tab. Rebuilding it on
+   * every keystroke would take the cursor out of it, which is the one thing a
+   * search box must never do.
+   */
+  async function loadShelf(shelf) {
+    const { type, noun, plural } = SHELVES[shelf];
+    const host = panel(shelf);
+
+    if (!$(`#shelf-${shelf}-results`)) {
+      clear(host);
+
+      host.appendChild(el('div', { class: 'panel-head' }, [
+        el('h3', { style: { fontSize: '.95rem' }, text: noun === 'book' ? 'Books' : 'Videos' }),
+        el('div', { class: 'row' }, [
+          el('button', { class: 'btn btn-outline btn-sm', onclick: openImportDialog },
+            ['Bulk import']),
+          el('button', {
+            class: 'btn btn-primary btn-sm',
+            // Adding from the video shelf should start as a video.
+            onclick: () => openContentEditor(null, shelf),
+          }, [`Add a ${noun}`]),
+        ]),
+      ]));
+
+      const box = el('input', {
+        type: 'search',
+        id: `shelf-${shelf}-search`,
+        placeholder: `Search ${plural} by title, author or category`,
+        'aria-label': `Search ${plural}`,
+        value: search[shelf],
+      });
+      const clearBtn = el('button', {
+        class: 'btn btn-outline btn-sm',
+        type: 'button',
+        onclick: () => {
+          search[shelf] = '';
+          box.value = '';
+          box.focus();
+          refreshShelf(shelf);
+        },
+      }, ['Clear']);
+
+      // Waiting a moment after the last keystroke means typing a whole word
+      // sends one request instead of one per letter.
+      let timer = null;
+      box.addEventListener('input', () => {
+        search[shelf] = box.value;
+        clearTimeout(timer);
+        timer = setTimeout(() => refreshShelf(shelf), 220);
+      });
+      box.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && box.value) {
+          search[shelf] = '';
+          box.value = '';
+          refreshShelf(shelf);
+        }
+        if (e.key === 'Enter') {
+          clearTimeout(timer);
+          refreshShelf(shelf);
+        }
+      });
+
+      host.appendChild(el('div', { class: 'panel' }, [
+        el('div', { class: 'row', style: { marginBottom: '12px' } }, [
+          el('div', { style: { flex: '1 1 260px' } }, [box]),
+          clearBtn,
+        ]),
+        el('div', { id: `shelf-${shelf}-results` }),
+        // Holds the unfiltered count, so "3 of 48" stays truthful while a
+        // filter is on rather than counting only what came back.
+        el('span', { id: `shelf-${shelf}-total`, class: 'hidden' }),
+      ]));
+    }
+
+    // The size of the shelf itself, independent of any filter.
+    try {
+      const all = await global.api.get('/api/content', { limit: 1, type });
+      $(`#shelf-${shelf}-total`).dataset.total = String(all.total);
+    } catch (err) { /* the filtered count alone will have to do */ }
+
+    await refreshShelf(shelf);
+  }
+
+  /**
+   * `shelf` is the tab this was opened from. It decides what a new title
+   * starts as, and which list is redrawn afterwards.
+   */
+  function openContentEditor(existing, shelf = 'books') {
     const isNew = !existing;
     const title = el('input', { type: 'text', maxlength: '255', value: existing ? existing.title : '' });
     const type = el('select', {}, [['BOOK', 'Book'], ['VIDEO', 'Video']]
       .map(([v, l]) => el('option', { value: v, text: l })));
-    if (existing) type.value = existing.content_type;
+    type.value = existing ? existing.content_type : SHELVES[shelf].type;
     const author = el('input', {
       type: 'text', maxlength: '255', value: existing ? existing.author_creator || '' : '',
     });
@@ -208,7 +333,8 @@
       el('div', { class: 'field' }, [el('label', { text: 'Tags' }), chips]),
     ]);
 
-    const dialog = modal(isNew ? 'Add a title' : `Edit "${existing.title}"`, body, [
+    const dialog = modal(
+      isNew ? `Add a ${SHELVES[shelf].noun}` : `Edit "${existing.title}"`, body, [
       el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Cancel']),
       el('button', {
         class: 'btn btn-primary',
@@ -232,7 +358,11 @@
             else await global.api.put(`/api/catalog/content/${existing.content_id}`, payload);
             dialog.close();
             toast('Saved.', 'ok');
-            loadContent();
+            // A title whose type was changed has moved to the other shelf, so
+            // redraw whichever one it is on now as well as the one we are on.
+            const landedOn = type.value === 'VIDEO' ? 'videos' : 'books';
+            await loadShelf(shelf);
+            if (landedOn !== shelf) await loadShelf(landedOn);
           } catch (err) {
             event.currentTarget.disabled = false;
             showError(err);
@@ -319,7 +449,10 @@ VIDEO,How Bees Talk,Eight minutes on the waggle dance.,Orbit Academy,7,BEGINNER,
         renderImportResult(res, slot);
         if (!dryRun && res.imported) {
           toast(`Imported ${res.imported} title${res.imported === 1 ? '' : 's'}.`, 'ok');
-          loadContent();
+          // An import file can hold both kinds, so neither shelf is safe to
+          // leave as it was.
+          await loadShelf('books');
+          await loadShelf('videos');
         }
       } catch (err) {
         clear(slot);
@@ -365,20 +498,41 @@ VIDEO,How Bees Talk,Eight minutes on the waggle dance.,Orbit Academy,7,BEGINNER,
    * The tag vocabulary behind the library filters. Renaming one here renames it
    * everywhere, because titles point at the tag rather than a copy of its name.
    */
-  async function loadCategories() {
-    const host = panel('categories');
-    clear(host);
+  /**
+   * Draws the category table, filtered by whatever is in the search box.
+   *
+   * The whole vocabulary is a few dozen rows and is already in memory, so this
+   * filters what was loaded rather than asking the server again: the list
+   * narrows as fast as it can be typed.
+   */
+  function refreshCategories() {
+    const body = $('#categories-results');
+    if (!body) return;
 
-    host.appendChild(el('div', { class: 'panel-head' }, [
-      el('h3', { style: { fontSize: '.95rem' } }, ['Categories']),
-      el('button', { class: 'btn btn-primary btn-sm', onclick: () => openCategoryEditor(null) },
-        ['Add a category']),
-    ]));
+    const term = search.categories.trim().toLowerCase();
+    const shown = term
+      ? allTags.filter((tag) => tag.tag_name.toLowerCase().includes(term)
+        || String(tag.category || '').toLowerCase().includes(term))
+      : allTags;
 
-    const data = await global.api.get('/api/content/tags');
-    allTags = data.items;
+    clear(body);
+    body.appendChild(el('p', {
+      class: 'tiny muted',
+      style: { margin: '0 0 10px' },
+      text: term
+        ? (shown.length
+          ? `${shown.length} of ${allTags.length} categories match "${search.categories.trim()}".`
+          : `Nothing matches "${search.categories.trim()}".`)
+        : `${allTags.length} categor${allTags.length === 1 ? 'y' : 'ies'} in the vocabulary.`,
+    }));
 
-    const rows = data.items.map((tag) => el('tr', {}, [
+    if (!shown.length) {
+      body.appendChild(el('p', { class: 'muted small', style: { margin: 0 },
+        text: 'Try part of a category name, or a kind: genre, theme or topic.' }));
+      return;
+    }
+
+    const rows = shown.map((tag) => el('tr', {}, [
       el('td', {}, [el('a', {
         href: `/library?tag=${encodeURIComponent(tag.tag_name)}`, text: tag.tag_name,
       })]),
@@ -399,20 +553,79 @@ VIDEO,How Bees Talk,Eight minutes on the waggle dance.,Orbit Academy,7,BEGINNER,
               try {
                 await global.api.del(`/api/catalog/tags/${tag.tag_id}`);
                 toast('Deleted.', 'ok');
-                loadCategories();
+                await loadCategories();
               } catch (err) { showError(err); }
             }),
         }, ['Delete']),
       ]),
     ]));
 
-    host.appendChild(el('div', { class: 'panel' },
-      table(['Name', 'Kind', 'Used by', ''], rows)));
-    host.appendChild(el('p', { class: 'tiny muted' }, [
-      'Genres and topics are what a child sees on their library page; themes are '
-      + 'kept for grown-ups and the Story Chat. A genre can also be blocked per '
-      + 'child from the Family page.',
-    ]));
+    body.appendChild(table(['Name', 'Kind', 'Used by', ''], rows));
+  }
+
+  async function loadCategories() {
+    const host = panel('categories');
+
+    // Built once, like the shelves: rebuilding the search box on every
+    // keystroke would take the cursor out of it.
+    if (!$('#categories-results')) {
+      clear(host);
+
+      host.appendChild(el('div', { class: 'panel-head' }, [
+        el('h3', { style: { fontSize: '.95rem' } }, ['Categories']),
+        el('button', { class: 'btn btn-primary btn-sm', onclick: () => openCategoryEditor(null) },
+          ['Add a category']),
+      ]));
+
+      const box = el('input', {
+        type: 'search',
+        id: 'categories-search',
+        placeholder: 'Search categories by name or kind',
+        'aria-label': 'Search categories',
+        value: search.categories,
+      });
+      const clearBtn = el('button', {
+        class: 'btn btn-outline btn-sm',
+        type: 'button',
+        onclick: () => {
+          search.categories = '';
+          box.value = '';
+          box.focus();
+          refreshCategories();
+        },
+      }, ['Clear']);
+
+      // No debounce: nothing is fetched, so there is nothing to wait for.
+      box.addEventListener('input', () => {
+        search.categories = box.value;
+        refreshCategories();
+      });
+      box.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && box.value) {
+          search.categories = '';
+          box.value = '';
+          refreshCategories();
+        }
+      });
+
+      host.appendChild(el('div', { class: 'panel' }, [
+        el('div', { class: 'row', style: { marginBottom: '12px' } }, [
+          el('div', { style: { flex: '1 1 260px' } }, [box]),
+          clearBtn,
+        ]),
+        el('div', { id: 'categories-results' }),
+      ]));
+
+      host.appendChild(el('p', { class: 'tiny muted' }, [
+        'Genres and topics are what a child sees on their library page; themes are '
+        + 'kept for grown-ups and the Story Chat. A genre can also be blocked per '
+        + 'child from the Family page.',
+      ]));
+    }
+
+    const data = await global.api.get('/api/content/tags');
+    allTags = data.items;
+    refreshCategories();
   }
 
   function openCategoryEditor(existing) {
@@ -458,7 +671,8 @@ VIDEO,How Bees Talk,Eight minutes on the waggle dance.,Orbit Academy,7,BEGINNER,
   // --- tabs -----------------------------------------------------------------
   const loaders = {
     overview: loadOverview,
-    content: loadContent,
+    books: () => loadShelf('books'),
+    videos: () => loadShelf('videos'),
     categories: loadCategories,
   };
 
