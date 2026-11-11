@@ -522,21 +522,30 @@ router.get('/guest-favourites/:email', guestFavouriteLimiter, asyncHandler(async
 // -----------------------------------------------------------------------------
 // GET /api/content/:id/pages  - the text of a book
 //
-// This is the content itself, not a description of it, so it is guarded exactly
-// like opening a title: you must be signed in, you must be a reader rather than
-// staff, and loadVisibleContent must agree you may see this one. A child outside
-// the title's scope gets the same 403 and the same "ask a grown-up" path they
-// get on the title page, and never a page of text.
+// This is the content itself, not a description of it, so loadVisibleContent
+// decides it exactly as it decides opening a title. A child outside the title's
+// scope gets the same 403 and the same "ask a grown-up" path they get on the
+// title page, and never a page of text. How much of the text comes back then
+// depends on who is asking, which is worked out below.
 // -----------------------------------------------------------------------------
 router.get('/:id/pages', asyncHandler(async (req, res) => {
   const id = v.int(req.params.id, 'Content id', { min: 1 });
   const item = await loadVisibleContent(req, id);
 
-  // Who gets the whole book: only an account that reads. A visitor with no
-  // account, and a staff account that has no reader profile, get the opening
-  // few pages so they can judge a title before signing up.
-  const isReader = req.user && (req.user.role === 'ADULT' || req.user.role === 'CHILD');
-  const limit = isReader ? null : GUEST_PREVIEW_PAGES;
+  // Who gets the whole book.
+  //
+  // A reader, obviously. A librarian too, because a librarian writes these
+  // pages and cannot proof-read a book four pages at a time. That is where it
+  // stops being like reading: the routes that record anything - progress,
+  // screen time, feedback - sit behind requireReader, so a librarian going
+  // through a book earns no badges, keeps no place and leaves no history.
+  //
+  // An administrator stays on the preview, like a visitor. Cataloguing is not
+  // their duty, which is the same reason they cannot reach /api/catalog at all.
+  const role = req.user ? req.user.role : null;
+  const isReader = role === 'ADULT' || role === 'CHILD';
+  const fullText = isReader || role === 'LIBRARIAN';
+  const limit = fullText ? null : GUEST_PREVIEW_PAGES;
 
   const [{ total }] = await db.query(
     'SELECT COUNT(*) AS total FROM content_pages WHERE content_id = ?', [id],
@@ -560,7 +569,7 @@ router.get('/:id/pages', asyncHandler(async (req, res) => {
     has_text: rows.length > 0,
     // True when there is more text than was sent. The reader shows the sign-up
     // gate on the strength of this rather than counting pages itself.
-    preview: !isReader,
+    preview: !fullText,
     preview_pages: limit,
     total_pages: totalPages,
     more_pages: Math.max(totalPages - rows.length, 0),

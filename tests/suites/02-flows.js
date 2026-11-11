@@ -44,8 +44,27 @@ module.exports = {
       r.status === 200 && r.body.preview === false
       && r.body.pages.length === r.body.total_pages, r.body && r.body.pages.length);
 
+    // A librarian writes the pages, so a librarian can read them all. An
+    // administrator has no cataloguing duty and stays on the preview.
     r = await librarian.get('/api/content/81/pages');
-    t.check('staff get the preview only', r.status === 200 && r.body.pages.length === 4);
+    t.check('a librarian gets the whole book, to check it',
+      r.status === 200 && r.body.preview === false
+      && r.body.pages.length === r.body.total_pages,
+      r.body && { preview: r.body.preview, sent: r.body.pages.length });
+
+    r = await admin.get('/api/content/81/pages');
+    t.check('an administrator gets the preview only',
+      r.status === 200 && r.body.preview === true && r.body.pages.length === 4,
+      r.body && { preview: r.body.preview, sent: r.body.pages.length });
+
+    // Reading the whole book buys a librarian none of the reading itself.
+    t.check('a librarian still cannot open a title',
+      (await librarian.post('/api/content/81/open')).status === 403);
+    t.check('a librarian still cannot save a reading position',
+      (await librarian.put('/api/content/81/progress',
+        { percentage_completed: 100, last_position: 20 })).status === 403);
+    t.check('a librarian still has no badges',
+      (await librarian.get('/api/me/badges')).status === 403);
 
     // --- saving and reading -------------------------------------------------
     t.check('add a favourite', (await child.post('/api/me/saved',

@@ -85,11 +85,16 @@
     const body = el('div', {}, staff
       // Already signed in, just not as somebody who reads. Inviting them to
       // register would make no sense, so say what is actually going on.
+      //
+      // In practice this is an administrator. A librarian is sent the whole
+      // book so they can check what they catalogued, so a librarian never runs
+      // out of preview and never arrives here.
       ? [
         el('p', { class: 'muted', style: lead, text: left }),
         el('p', { class: 'muted', style: after,
-          text: 'Staff accounts do not have a reader profile, so they see the opening pages of '
-            + 'a title rather than the whole of it.' }),
+          text: 'An administrator account has no reader profile, so it sees the opening pages '
+            + 'of a title rather than the whole of it. Reading a book through to check it is '
+            + 'a librarian\u2019s job.' }),
       ]
       : [
         el('p', { class: 'muted', style: lead, text: left }),
@@ -103,10 +108,8 @@
     const footer = staff
       ? [
         el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Close']),
-        global.SN.user && global.SN.user.role === 'LIBRARIAN'
-          ? el('a', { class: 'btn btn-primary', href: '/librarian', text: 'Open the catalogue' })
-          : el('a', { class: 'btn btn-primary', href: `/content?id=${contentId}`,
-            text: 'Back to the title' }),
+        el('a', { class: 'btn btn-primary', href: `/content?id=${contentId}`,
+          text: 'Back to the title' }),
       ]
       : [
         el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Not now']),
@@ -165,10 +168,12 @@
     $('#prevBtn').disabled = page === 0;
     $('#nextBtn').disabled = false;
     // On the last page of a preview the button leads to the sign-up panel, not
-    // to a finish the reader has not earned.
-    $('#nextBtn').textContent = last
-      ? (morePages ? 'Read on \u2192' : 'Finish \u2713')
-      : 'Next \u2192';
+    // to a finish the reader has not earned. Staff reach the real last page but
+    // have nothing to finish either: there is no progress row to close.
+    let lastLabel = 'Finish \u2713';
+    if (morePages) lastLabel = 'Read on \u2192';
+    else if (!isReader) lastLabel = 'Back to the title';
+    $('#nextBtn').textContent = last ? lastLabel : 'Next \u2192';
     reserveBarSpace();
     global.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -263,6 +268,18 @@
       fmt.duration(item.duration_minutes),
     ].filter(Boolean).join(' · ');
     $('#backLink').href = `/content?id=${contentId}`;
+
+    // A librarian gets the whole book so they can check what they catalogued,
+    // and none of the reading that normally goes with it. Saying so is better
+    // than letting them come back tomorrow and find their place gone. Staff
+    // who were only sent a preview are told that by the counter instead, and
+    // would be puzzled by a note about checking a book they cannot see.
+    if (!isReader && global.SN.user && !morePages) {
+      $('#screenTime').appendChild(el('div', { class: 'alert alert-info' }, [
+        'You are reading this as staff, to check it. Your place is not saved, and '
+        + 'nothing here counts towards reading history or badges.',
+      ]));
+    }
 
     // Someone returning from the sign-up gate carries the page they reached.
     // It only applies to a full reader: on a preview it would point past the

@@ -416,6 +416,45 @@ body.reader-page .reader > :last-child { margin-bottom: auto; }
 .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
 .modal-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
+/* A dialog that holds a whole book needs more room than one that holds a
+   question. The inner `min()` keeps it inside a phone screen. */
+.modal-wide { width: min(880px, 100%); }
+
+/* --- The librarian's page editor ----------------------------------------- */
+.page-editor { display: flex; flex-direction: column; gap: 12px; }
+.page-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  padding: 12px;
+}
+.page-card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.page-card-head > .grow { min-width: 160px; }
+.page-card-tools { flex-wrap: nowrap; gap: 6px; }
+.page-card textarea { min-height: 104px; }
+.page-no {
+  flex: 0 0 auto;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+/* The emoji that heads a page: one character, so one character wide. The
+   element is named in the selector because the shared `input[type="text"]`
+   rule above stretches every text box to the full width, and a bare class
+   does not carry enough weight to overrule it. */
+input.page-glyph { flex: 0 0 auto; width: 3.6rem; text-align: center; padding-left: 4px; padding-right: 4px; }
+/* An emoji keeps its own colours, so the usual grey placeholder rule does
+   nothing for it and the example looks like something already typed. */
+input.page-glyph::placeholder { opacity: .3; }
+
 /* --- Footer -------------------------------------------------------------- */
 .footer { border-top: 1px solid var(--line); margin-top: 50px; padding: 26px 0; color: var(--ink-muted); font-size: .82rem; }
 .footer-inner { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }

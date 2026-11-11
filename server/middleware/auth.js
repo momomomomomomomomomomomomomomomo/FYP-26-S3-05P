@@ -84,6 +84,11 @@ const requireRole = (...roles) => (req, res, next) => {
  * and a librarian have no reading history, no favourites, no badges and no
  * Story Chat - so the reader-only routes reject them outright rather than
  * quietly building up a personal library nobody intended them to have.
+ *
+ * A librarian is served the full text of a book so they can check what they
+ * catalogued, which is decided in the pages route rather than here. It changes
+ * nothing about this gate: reading it through still records nothing, because
+ * everything that would record it is behind this check.
  */
 const requireReader = (req, res, next) => {
   if (!req.user) return next(ApiError.unauthorized());

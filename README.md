@@ -26,7 +26,8 @@ npm start                # http://localhost:3000
 |---|---|---|---|---|---|
 | Browse and preview the catalogue | whole catalogue | **filtered by their parent**, simplified | ✅ | ✅ | ✅ |
 | Favourites, watchlist, progress, badges | favourites by email | ✅ | ✅ | — | — |
-| Read a title | **first 4 pages** | ✅ | ✅ | first 4 pages | first 4 pages |
+| Read a title | **first 4 pages** | ✅ | ✅ | ✅ **to check it, nothing recorded** | first 4 pages |
+| Write the pages of a book | — | — | — | ✅ | — |
 | Review or react to a title | — | ✅ | ✅ | — | — |
 | Story Chat | — | ✅ (filtered) | ✅ | — | — |
 | Interests, used by Story Chat | — | ✅ | ✅ | — | — |
@@ -59,6 +60,13 @@ or notifications, and no family page. They may browse and preview the catalogue 
 a librarian has to be able to check their own shelves — and edit their own name
 and password, and that is all. The reader routes reject them outright rather than
 quietly building up a personal library nobody intended them to have.
+
+**A librarian can read a book all the way through**, because a librarian writes
+its pages and cannot proof-read four at a time. That is as far as it goes: the
+routes that record anything sit behind the same reader check as before, so no
+progress is kept, no screen time is counted and no badge is ever earned. The
+reader says so on the page rather than letting a librarian wonder where their
+place went. An administrator does not catalogue, so they stay on the preview.
 
 Signing in takes each role where its work is: administrators land on the admin
 console, librarians on the catalogue, and everyone else on the landing page.
@@ -183,7 +191,10 @@ One page, four experiences, decided by who is looking:
   generated cover art drawn as SVG from a palette-and-motif system, so nothing
   is fetched from the internet and no image is licensed from anyone. The books
   live in `database/books/`, one file per book; `npm run books:import` loads
-  them and `npm run books:covers` draws the covers.
+  them and `npm run books:covers` draws the covers. A librarian writes any
+  further books in the app itself: the catalogue's **Pages** editor takes a
+  whole story pasted in at once or a page at a time, and the books shelf shows
+  at a glance which titles are still only a catalogue entry.
 - **Reading** — progress tracking, favourites, watchlist, reviews and ratings,
   one-tap **emoji reactions** for readers who would rather not write, and seven
   automatic badges. Visitors without an account can favourite against an email
@@ -192,9 +203,10 @@ One page, four experiences, decided by who is looking:
   email, set age limits, blocked genres and daily screen time, approve or refuse
   unlock requests, and read each child's activity.
 - **Catalogue** (librarians) — the shelf at a glance, titles to add, edit and
-  remove, **bulk CSV import**, and the **category vocabulary** behind every
-  library filter. The overview flags titles with no category or no age rating,
-  and titles nobody has ever opened.
+  remove, a **page editor** for writing the text of a book, **bulk CSV import**,
+  and the **category vocabulary** behind every library filter. The overview
+  flags titles with no category, no age rating or no pages, and titles nobody
+  has ever opened.
 - **Administration** — every account (including appointing librarians), reported
   content, site-wide announcements, and the full audit trail.
 
