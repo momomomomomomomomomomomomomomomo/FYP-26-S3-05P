@@ -62,6 +62,7 @@
     CONTENT_IMPORT: 'Bulk imported titles',
     CONTENT_CREATE: 'Added a title',
     CONTENT_UPDATE: 'Edited a title',
+    CONTENT_PAGES_UPDATE: 'Edited the pages of a book',
     CONTENT_DELETE: 'Removed a title',
     ANNOUNCEMENT: 'Posted an announcement',
     ADMIN_USER_UPDATE: 'Edited an account',
@@ -532,7 +533,7 @@
   }
 
   // --- modal ---------------------------------------------------------------
-  function modal(title, contentNode, footerNodes) {
+  function modal(title, contentNode, footerNodes, options = {}) {
     const backdrop = el('div', { class: 'modal-backdrop' });
     // Whatever had the keyboard before the dialog opened gets it back when the
     // dialog closes, so a keyboard user is not dropped at the top of the page.
@@ -548,6 +549,12 @@
     // the dialog for the page behind it, which is still there and still
     // clickable but is not what the reader is looking at.
     const onKey = (e) => {
+      // One dialog can sit on top of another - a confirmation over an editor.
+      // Both listen on the document, so without this the Escape meant for the
+      // top one would close everything underneath it as well. Only the last
+      // backdrop in the document, which is the one on top, takes keys.
+      const stack = document.querySelectorAll('.modal-backdrop');
+      if (stack.length && stack[stack.length - 1] !== backdrop) return;
       if (e.key === 'Escape') { close(); return; }
       if (e.key !== 'Tab') return;
       const items = focusable();
@@ -567,7 +574,14 @@
     // was dismissed. Removing it only inside the Escape branch left a listener
     // behind every time somebody used the X or clicked the backdrop, and they
     // accumulated for as long as the page stayed open.
-    const close = () => {
+    const close = (how) => {
+      // A dialog holding work somebody has typed may ask before it goes: a
+      // `confirmClose` that returns false keeps it open. Escape, the X and a
+      // click on the backdrop all come through here, so one guard covers all
+      // three. A caller that must close regardless - a save that succeeded -
+      // passes { force: true }.
+      if (!(how && how.force === true) && typeof options.confirmClose === 'function'
+          && options.confirmClose() === false) return;
       document.removeEventListener('keydown', onKey);
       backdrop.remove();
       if (opener && typeof opener.focus === 'function' && document.contains(opener)) {

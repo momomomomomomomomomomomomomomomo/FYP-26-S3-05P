@@ -154,15 +154,26 @@
 
     const actions = el('div', { class: 'row' });
     // Staff may look at any title - a librarian has to be able to check their
-    // own cataloguing - but reading it, saving it and reviewing it all belong to
-    // a reader's account, which staff do not have.
+    // own cataloguing - but saving it and reviewing it belong to a reader's
+    // account, which staff do not have.
     const staff = global.SN.isStaff();
+    // A librarian writes the pages of a book, so a librarian can read one
+    // straight through to check it. It is proof-reading rather than reading:
+    // the page below records nothing and the buttons after this one stay off.
+    const proofing = staff && global.SN.user
+      && global.SN.user.role === 'LIBRARIAN' && item.content_type === 'BOOK';
 
     if (!staff) {
       actions.appendChild(el('a', {
         class: 'btn btn-primary',
         href: `/read?id=${item.content_id}`,
         text: item.content_type === 'VIDEO' ? '▶ Play' : '📖 Read now',
+      }));
+    } else if (proofing) {
+      actions.appendChild(el('a', {
+        class: 'btn btn-outline',
+        href: `/read?id=${item.content_id}`,
+        text: '📖 Read it through',
       }));
     }
 

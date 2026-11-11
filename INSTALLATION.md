@@ -214,7 +214,7 @@ on a clean checkout.
 | Role | Sign in with | Password | What to look at |
 |---|---|---|---|
 | **Administrator** | `admin@storynest.local` | `Admin123!` | *Admin* → accounts, reports, announcements, audit log |
-| **Librarian** | `librarian@storynest.local` | `Librarian123!` | *Catalogue* → add, edit and remove titles, categories, bulk import |
+| **Librarian** | `librarian@storynest.local` | `Librarian123!` | *Catalogue* → add, edit and remove titles, write a book's pages, categories, bulk import |
 | **Adult** | `parent@storynest.local` | `Parent123!` | *Family* → Leo and Ada, their controls, one pending request |
 | **Adult** | `daniel@storynest.local` | `Parent123!` | A second family, so the admin list is not trivial |
 | **Child** | `leo` | `storynest1` | Age 8, mysteries blocked, 60 min/day |
@@ -313,7 +313,7 @@ storynest/
 │   │   ├── children.js     # adult: child accounts, parental controls, requests
 │   │   ├── chat.js         # Story Chat sessions and messages
 │   │   ├── admin.js        # users, reports, announcements, audit log
-│   │   └── catalog.js      # the Librarian's routes: titles, categories, bulk import
+│   │   └── catalog.js      # the Librarian's routes: titles, pages, categories, bulk import
 │   └── utils/
 │       ├── access.js       # who may see what — the parental-control rules
 │       ├── chatbot.js      # Story Chat: retrieve, rank (BM25), verify, explain

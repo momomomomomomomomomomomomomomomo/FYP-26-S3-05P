@@ -39,7 +39,11 @@ router.get('/stats', asyncHandler(async (req, res) => {
             (SELECT COUNT(*) FROM content WHERE age_rating IS NULL) AS unrated,
             (SELECT COUNT(*) FROM content c
               WHERE NOT EXISTS (SELECT 1 FROM content_tags ct WHERE ct.content_id = c.content_id))
-              AS untagged`,
+              AS untagged,
+            (SELECT COUNT(*) FROM content c
+              WHERE c.content_type = 'BOOK'
+                AND NOT EXISTS (SELECT 1 FROM content_pages p WHERE p.content_id = c.content_id))
+              AS textless`,
   );
 
   // Titles nobody has opened are the ones worth re-shelving or re-tagging.
@@ -195,6 +199,126 @@ router.delete('/content/:id', asyncHandler(async (req, res) => {
     targetId: contentId,
   });
   res.json({ ok: true });
+}));
+
+
+// -----------------------------------------------------------------------------
+// The pages of a book
+//
+// Everything above describes a title. These rows are the title: the text a
+// child actually reads. They are edited on their own rather than inside the
+// catalogue form because they are a different job - writing or pasting a story
+// is not the same as shelving it - and because a book runs to dozens of pages,
+// which has no business travelling with a form about age ratings.
+//
+// GET /api/catalog/page-counts         - how much text each book has
+// GET /api/catalog/content/:id/pages   - the whole text of one book, in order
+// PUT /api/catalog/content/:id/pages   - replaces it, renumbered from 1
+// -----------------------------------------------------------------------------
+const MAX_PAGES = 300;
+const MAX_PAGE_BODY = 8000;
+
+// Which books have text and which are still empty. One query for the whole
+// shelf: asking per title would be a request per row, and the shelf draws
+// three hundred of them.
+router.get('/page-counts', asyncHandler(async (req, res) => {
+  const rows = await db.query(
+    `SELECT c.content_id, COUNT(p.page_id) AS pages
+       FROM content c
+       LEFT JOIN content_pages p ON p.content_id = c.content_id
+      WHERE c.content_type = 'BOOK'
+      GROUP BY c.content_id`,
+  );
+  res.json({
+    counts: rows.map((r) => ({ content_id: Number(r.content_id), pages: Number(r.pages) })),
+  });
+}));
+
+async function loadTitle(contentId) {
+  const row = await db.queryOne(
+    'SELECT content_id, title, content_type FROM content WHERE content_id = ?', [contentId],
+  );
+  if (!row) throw ApiError.notFound('That title is not in the library.');
+  return row;
+}
+
+router.get('/content/:id/pages', asyncHandler(async (req, res) => {
+  const contentId = v.int(req.params.id, 'Content id', { min: 1 });
+  const item = await loadTitle(contentId);
+
+  const rows = await db.query(
+    `SELECT page_number, heading, body, illustration
+       FROM content_pages WHERE content_id = ? ORDER BY page_number`,
+    [contentId],
+  );
+
+  res.json({
+    content_id: Number(item.content_id),
+    title: item.title,
+    content_type: item.content_type,
+    max_pages: MAX_PAGES,
+    max_body: MAX_PAGE_BODY,
+    // The text is sent whole and unparagraphed, because this is the editor.
+    // The reader's own endpoint is the one that splits it for display.
+    pages: rows.map((r) => ({
+      page_number: Number(r.page_number),
+      heading: r.heading,
+      body: r.body,
+      illustration: r.illustration,
+    })),
+  });
+}));
+
+router.put('/content/:id/pages', asyncHandler(async (req, res) => {
+  const contentId = v.int(req.params.id, 'Content id', { min: 1 });
+  const item = await loadTitle(contentId);
+  if (item.content_type !== 'BOOK') {
+    throw ApiError.badRequest('Only a book has pages. A video plays from its link instead.');
+  }
+  if (!Array.isArray(req.body.pages)) {
+    throw ApiError.badRequest('Expected a list of pages.');
+  }
+  if (req.body.pages.length > MAX_PAGES) {
+    throw ApiError.badRequest(`A book may have at most ${MAX_PAGES} pages.`);
+  }
+
+  // Every page is checked before a single one is written, so a mistake on page
+  // forty does not save the first thirty-nine and lose the rest.
+  const pages = req.body.pages.map((page, i) => {
+    if (!page || typeof page !== 'object') throw ApiError.badRequest(`Page ${i + 1} is not a page.`);
+    return {
+      heading: v.str(page.heading, `Page ${i + 1} heading`, { required: false, max: 200 }),
+      body: v.str(page.body, `Page ${i + 1} text`, { max: MAX_PAGE_BODY }),
+      illustration: v.str(page.illustration, `Page ${i + 1} picture`,
+        { required: false, max: 255 }),
+    };
+  });
+
+  await db.transaction(async (conn) => {
+    // Replaced wholesale and renumbered from one, exactly as the book importer
+    // does it, so the numbering is always 1..n with no hole left by a deleted
+    // page and no clash with the table's unique (content_id, page_number).
+    await conn.execute('DELETE FROM content_pages WHERE content_id = ?', [contentId]);
+    for (let i = 0; i < pages.length; i += 1) {
+      await conn.execute(
+        `INSERT INTO content_pages (content_id, page_number, heading, body, illustration)
+         VALUES (?, ?, ?, ?, ?)`,
+        [contentId, i + 1, pages[i].heading, pages[i].body, pages[i].illustration],
+      );
+    }
+  });
+
+  await audit.logFor(req, {
+    activityType: 'CONTENT_PAGES_UPDATE',
+    description: pages.length
+      ? `Saved ${pages.length} page${pages.length === 1 ? '' : 's'} of "${item.title}"`
+      : `Removed the text of "${item.title}"`,
+    contentId,
+    targetTable: 'content_pages',
+    targetId: contentId,
+  });
+
+  res.json({ ok: true, pages: pages.length });
 }));
 
 // -----------------------------------------------------------------------------
