@@ -340,7 +340,7 @@
     const scope = global.SN.scope;
     if (!scope || !scope.restricted) return;
     const bits = [];
-    if (!scope.allowContent) bits.push('the library is paused - only unlocked titles show up');
+    if (!scope.allowContent) bits.push('the library is paused - you can look, but you need to ask before opening');
     if (scope.maxAge !== null && scope.maxAge !== undefined) bits.push(`titles for ages ${scope.maxAge} and under`);
     if (scope.blockedGenres && scope.blockedGenres.length) bits.push(`no ${scope.blockedGenres.join(' or ')}`);
     if (scope.dailyScreenLimit !== null && scope.dailyScreenLimit !== undefined) {

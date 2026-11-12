@@ -137,8 +137,20 @@ never sent to the browser. A title is visible to a child when:
 OR  a parent has APPROVED it for them
 ```
 
-If `parental_controls.allow_content` is off, only approved titles appear.
 `max_age` falls back to the child's own age when no limit is set.
+
+**Seeing and opening are separate.** `contentScopeClause` is the gate: it
+decides what a child may *open*, and every route that hands over a title or its
+text goes through it. `contentListingClause` decides what a shelf *lists*, and
+the two differ in exactly one place. When `parental_controls.allow_content` is
+off, the shelf still lists everything the age and genre rules allow, each cover
+marked `locked`, and opening one leads to the "ask a grown-up" request that was
+already there. An empty library told a child only that something was broken; a
+locked one tells them what to do about it.
+
+Age limits and blocked genres are *not* softened the same way: those still hide
+a title outright, because a child is not meant to learn what their parent ruled
+out for them, and a locked cover would say so by being there.
 
 ## A library that looks used
 

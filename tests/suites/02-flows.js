@@ -33,6 +33,34 @@ module.exports = {
     t.check('topic filter works',
       r.status === 200 && r.body.items.every((i) => (i.tags || []).includes('Space')));
 
+    // --- books and videos are separate shelves --------------------------------
+    // The Library is books and Watch is videos. The split is drawn in the two
+    // pages rather than the API, so what is checked here is that the API can
+    // actually draw it and that nothing suggests crossing it.
+    r = await child.get('/api/content?type=BOOK&limit=50');
+    t.check('the book shelf holds only books',
+      r.status === 200 && r.body.items.length > 0
+      && r.body.items.every((i) => i.content_type === 'BOOK'),
+      r.body && r.body.items.filter((i) => i.content_type !== 'BOOK').map((i) => i.title));
+
+    r = await child.get('/api/content?type=VIDEO&limit=50');
+    t.check('the video shelf holds only videos',
+      r.status === 200 && r.body.items.length > 0
+      && r.body.items.every((i) => i.content_type === 'VIDEO'),
+      r.body && r.body.items.filter((i) => i.content_type !== 'VIDEO').map((i) => i.title));
+
+    for (const type of ['BOOK', 'VIDEO']) {
+      const shelf = await child.get(`/api/content?type=${type}&limit=6`);
+      let mixed = null;
+      for (const title of shelf.body.items) {
+        const detail = await child.get(`/api/content/${title.content_id}`);
+        const stray = (detail.body.related || []).find((x) => x.content_type !== type);
+        if (stray) { mixed = `${title.title} suggests ${stray.title}`; break; }
+      }
+      t.check(`"more like this" on a ${type.toLowerCase()} suggests only ${type.toLowerCase()}s`,
+        mixed === null, mixed);
+    }
+
     // --- guest preview ------------------------------------------------------
     r = await guest.get('/api/content/81/pages');
     t.check('a guest gets a capped preview, not the book',

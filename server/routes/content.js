@@ -7,7 +7,10 @@ const v = require('../utils/validate');
 const audit = require('../utils/audit');
 const badges = require('../utils/badges');
 const { ApiError, asyncHandler } = require('../utils/errors');
-const { contentScopeClause, assertScreenTimeRemaining, ageFromDob } = require('../utils/access');
+const {
+  contentScopeClause, contentListingClause, isLockedForScope,
+  assertScreenTimeRemaining, ageFromDob,
+} = require('../utils/access');
 const { requireAuth, requireReader } = require('../middleware/auth');
 
 const router = express.Router();
@@ -145,7 +148,11 @@ function normaliseRow(row) {
 // GET /api/content  - the library, already filtered for whoever is asking
 // -----------------------------------------------------------------------------
 router.get('/', asyncHandler(async (req, res) => {
-  const scoped = contentScopeClause(req.scope, 'c');
+  // The shelf, not the gate. When a parent has paused the library this lists
+  // the titles anyway, each one marked `locked`, so a child sees a library
+  // rather than a blank page and can ask for what they want. Opening one is
+  // still refused: that goes through contentScopeClause in loadVisibleContent.
+  const scoped = contentListingClause(req.scope, 'c');
   const where = [];
   const params = [];
 
@@ -219,6 +226,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   let items = (await withTags(rows)).map(normaliseRow);
   items = await withPersonalState(items, req.user ? req.user.user_id : null);
+  items = items.map((i) => ({ ...i, locked: isLockedForScope(req.scope, i.content_id) }));
 
   res.json({ items, total: Number(totalRow.n || 0), limit, offset });
 }));
@@ -406,19 +414,23 @@ router.get('/:id', asyncHandler(async (req, res) => {
   let payload = normaliseRow({ ...tagged, ...ratings, page_count: Number(pageCount.n || 0) });
   [payload] = await withPersonalState([payload], req.user ? req.user.user_id : null);
 
-  // "More like this": shares at least one tag, still inside the viewer's scope.
+  // "More like this": shares at least one tag, is the same kind of thing, and
+  // is still inside the viewer's scope. Matching the type matters because books
+  // and videos live on separate shelves - suggesting a video under a book sends
+  // the reader somewhere the Library will not take them.
   const scoped = contentScopeClause(req.scope, 'c');
   const related = await db.query(
     `SELECT c.content_id, c.title, c.content_type, c.age_rating, c.cover_image_url,
             c.duration_minutes, NULL AS rating_avg, 0 AS rating_count
        FROM content c
       WHERE c.content_id <> ?
+        AND c.content_type = ?
         AND EXISTS (SELECT 1 FROM content_tags a
                       JOIN content_tags b ON b.tag_id = a.tag_id
                      WHERE a.content_id = c.content_id AND b.content_id = ?)
         ${scoped.clause}
       ORDER BY RAND() LIMIT 4`,
-    [id, id, ...scoped.params],
+    [id, payload.content_type, id, ...scoped.params],
   );
 
   const reactions = await reactionsFor(id, req.user ? req.user.user_id : null);
