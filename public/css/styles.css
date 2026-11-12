@@ -180,11 +180,21 @@ a.card:hover { text-decoration: none; box-shadow: var(--shadow); transform: tran
   font-size: .62rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
   padding: 3px 7px; border-radius: 999px;
 }
+/* A locked cover. The wash is light on purpose: a paused library still has to
+   look like a library, so the artwork shows through and only the lock is
+   solid. The label carries its own background rather than relying on the wash,
+   because what is behind it is a different colour on every cover. */
 .cover-lock {
   position: absolute; inset: 0; z-index: 3;
-  background: rgba(249,250,251,.9); backdrop-filter: blur(2px);
-  display: grid; place-items: center; align-content: center; gap: 4px;
-  text-align: center; padding: 12px; color: var(--ink-muted); font-size: .78rem; font-weight: 600;
+  background: rgba(249,250,251,.5); backdrop-filter: blur(3px);
+  display: grid; place-items: center; align-content: center; gap: 7px;
+  text-align: center; padding: 12px;
+}
+.cover-lock-glyph { font-size: 1.5rem; line-height: 1; }
+.cover-lock-label {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 10px; font-size: .72rem; font-weight: 600; color: var(--ink-soft);
+  box-shadow: var(--shadow-sm);
 }
 .card-body { padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 3px; }
 .card-eyebrow { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); font-weight: 600; }
@@ -286,6 +296,46 @@ td.actions > * + * { margin-left: 8px; }
 .hint { font-size: .78rem; color: var(--ink-muted); }
 .checkbox { display: flex; align-items: flex-start; gap: 8px; font-size: .87rem; }
 .checkbox input { width: auto; margin-top: 3px; }
+
+/* --- A checklist of categories (the parental controls) -------------------
+   Three dozen categories, so they are grouped, laid out in columns and put
+   in their own scroll box rather than pushing the Save button off the
+   dialog. A ticked row means blocked, and reads red to say so. */
+.check-all { margin: 4px 0 8px; }
+.check-scroll {
+  max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 12px; background: var(--bg);
+}
+.check-group + .check-group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.check-group-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
+  font-weight: 700; color: var(--ink-faint); margin-bottom: 4px;
+}
+.check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 0 10px; }
+/* These are <label>s inside a .field, which is shouted in small caps. A
+   category is a proper name - "Fairy Tale", "Non-Fiction" - so it keeps its
+   own casing and is written at a size meant for reading a list of 36. */
+.field .check-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 7px; border-radius: var(--radius-sm);
+  font-size: .84rem; font-weight: 400; text-transform: none; letter-spacing: 0;
+  color: var(--ink); cursor: pointer;
+}
+.field .check-item:hover { background: var(--bg-sunken); }
+.field .check-item input { width: auto; margin: 0; flex: 0 0 auto; }
+.check-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.field .check-item input:checked ~ .check-name { color: var(--red); font-weight: 600; }
+.check-count { font-size: .7rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+/* The running count under the list. */
+.tally {
+  margin-top: 10px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-sunken); color: var(--ink-soft); font-size: .8rem; line-height: 1.45;
+}
+.tally-warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
 
 /* --- Tabs ---------------------------------------------------------------- */
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; }

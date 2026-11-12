@@ -140,8 +140,8 @@
     }));
     if (options.locked) {
       box.appendChild(el('div', { class: 'cover-lock' }, [
-        el('div', { text: '🔒' }),
-        el('div', { text: 'Ask a grown-up' }),
+        el('div', { class: 'cover-lock-glyph', text: '🔒' }),
+        el('div', { class: 'cover-lock-label', text: 'Ask a grown-up' }),
       ]));
     }
     return box;
@@ -274,6 +274,10 @@
   /** One cover card, as used on the home page and throughout the library. */
   function card(item, opts) {
     const options = opts || {};
+    // A locked title is one a grown-up has not unlocked yet. It still gets a
+    // cover and a place on the shelf; the lock is drawn over the artwork and
+    // opening it leads to the request panel on the title page.
+    const locked = options.locked !== undefined ? options.locked : !!item.locked;
     const meta = [fmt.ages(item), (item.tags && item.tags[0]) || null].filter(Boolean).join(' · ');
 
     const body = el('div', { class: 'card-body' }, [
@@ -290,9 +294,11 @@
     }
 
     const link = el('a', { class: 'card', href: `/content?id=${item.content_id}` },
-      [coverEl(item, options), body]);
+      [coverEl(item, { ...options, locked }), body]);
 
-    if (options.preview === false) return link;
+    // No preview on a locked title: the one thing to do with it is ask, and the
+    // lock already says so.
+    if (options.preview === false || locked) return link;
 
     // A button cannot live inside an <a>, so the card is wrapped and the
     // preview control is positioned over the cover.

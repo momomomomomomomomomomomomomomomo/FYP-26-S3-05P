@@ -214,9 +214,13 @@
       }));
     }
 
+    // A tag chip belongs to the shelf this title lives on. Sending a video's
+    // tags to the Library would land on a books-only shelf filtered by a topic
+    // the reader picked off a video.
+    const shelf = item.content_type === 'VIDEO' ? '/watch' : '/library';
     const tagRow = el('div', { class: 'chips', style: { marginBottom: '14px' } },
       (item.tags || []).map((tag) => el('a', {
-        class: 'chip', href: `/library?tag=${encodeURIComponent(tag)}`, text: tag,
+        class: 'chip', href: `${shelf}?tag=${encodeURIComponent(tag)}`, text: tag,
       })));
 
     host.appendChild(el('div', { class: 'detail' }, [

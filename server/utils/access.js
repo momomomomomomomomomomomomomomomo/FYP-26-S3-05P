@@ -79,28 +79,24 @@ async function buildViewerScope(user) {
   };
 }
 
-/**
- * Builds the WHERE fragment + params that restrict a `content c` query to what
- * `scope` allows. Returns an empty clause for unrestricted viewers.
- */
-function contentScopeClause(scope, alias = 'c') {
-  if (!scope.restricted) return { clause: '', params: [] };
-
-  const approvedParams = scope.approvedIds;
-  const approvedSql = approvedParams.length
-    ? `${alias}.content_id IN (${approvedParams.map(() => '?').join(',')})`
+/** `content_id IN (...)` for the titles approved by name, or FALSE if none. */
+function approvedSqlFor(scope, alias) {
+  return scope.approvedIds.length
+    ? `${alias}.content_id IN (${scope.approvedIds.map(() => '?').join(',')})`
     : 'FALSE';
+}
 
-  const conditions = [];
-  const params = [];
-
-  if (!scope.allowContent) {
-    // Content is switched off entirely: approved titles only.
-    return { clause: ` AND (${approvedSql})`, params: [...approvedParams] };
-  }
-
-  conditions.push(`(${alias}.age_rating IS NULL OR ${alias}.age_rating <= ?)`);
-  params.push(scope.maxAge === null || scope.maxAge === undefined ? 99 : scope.maxAge);
+/**
+ * The controls that hide a title from a child outright: too old for them, or
+ * carrying a genre their parent ruled out.
+ *
+ * Shared by both clauses below so the two cannot drift apart, which matters:
+ * one decides what a child may open and the other what they may see, and a
+ * difference between them that nobody intended is a leak.
+ */
+function hidingConditions(scope, alias) {
+  const conditions = [`(${alias}.age_rating IS NULL OR ${alias}.age_rating <= ?)`];
+  const params = [scope.maxAge === null || scope.maxAge === undefined ? 99 : scope.maxAge];
 
   if (scope.blockedGenres.length) {
     conditions.push(`NOT EXISTS (
@@ -111,13 +107,70 @@ function contentScopeClause(scope, alias = 'c') {
     )`);
     params.push(...scope.blockedGenres);
   }
+  return { conditions, params };
+}
+
+/**
+ * Builds the WHERE fragment + params that restrict a `content c` query to what
+ * `scope` allows a viewer to OPEN. Returns an empty clause for unrestricted
+ * viewers.
+ *
+ * This is the gate. Everything that hands over a title or its text goes
+ * through it, and a paused library really does mean approved titles only.
+ */
+function contentScopeClause(scope, alias = 'c') {
+  if (!scope.restricted) return { clause: '', params: [] };
+
+  const approvedSql = approvedSqlFor(scope, alias);
+
+  if (!scope.allowContent) {
+    // Content is switched off entirely: approved titles only.
+    return { clause: ` AND (${approvedSql})`, params: [...scope.approvedIds] };
+  }
+
+  const { conditions, params } = hidingConditions(scope, alias);
 
   // A title is visible if it passes every control, OR it was approved by name.
-  const passes = conditions.join(' AND ');
   return {
-    clause: ` AND ((${passes}) OR (${approvedSql}))`,
-    params: [...params, ...approvedParams],
+    clause: ` AND ((${conditions.join(' AND ')}) OR (${approvedSql}))`,
+    params: [...params, ...scope.approvedIds],
   };
+}
+
+/**
+ * The same thing for a shelf: what a child may SEE rather than open.
+ *
+ * The one difference is the pause. A paused library used to come back empty,
+ * which told a child nothing except that their library was broken. Here the
+ * shelf still fills, every cover on it is locked, and opening one is what asks
+ * a grown-up - the request flow that already existed, now reachable.
+ *
+ * Age and genre are deliberately NOT softened the same way. A child is not
+ * meant to learn what their parent ruled out for them, and a locked cover
+ * would tell them by being there at all. Those still hide.
+ *
+ * Nothing here is a substitute for the gate above: this clause only decides
+ * what is listed, and every route that hands over a title still asks
+ * contentScopeClause whether it may.
+ */
+function contentListingClause(scope, alias = 'c') {
+  if (!scope.restricted || scope.allowContent) return contentScopeClause(scope, alias);
+
+  const { conditions, params } = hidingConditions(scope, alias);
+  return {
+    clause: ` AND ((${conditions.join(' AND ')}) OR (${approvedSqlFor(scope, alias)}))`,
+    params: [...params, ...scope.approvedIds],
+  };
+}
+
+/**
+ * True when a title is on the shelf but shut: the library is paused and this
+ * one was not approved by name. The shelf shows it with a lock; opening it is
+ * refused by contentScopeClause exactly as before.
+ */
+function isLockedForScope(scope, contentId) {
+  if (!scope || !scope.restricted || scope.allowContent) return false;
+  return !scope.approvedIds.includes(Number(contentId));
 }
 
 /** Minutes of screen time a child has logged today. */
@@ -176,6 +229,8 @@ module.exports = {
   getApprovedContentIds,
   buildViewerScope,
   contentScopeClause,
+  contentListingClause,
+  isLockedForScope,
   screenTimeUsedToday,
   assertScreenTimeRemaining,
   isParentOf,

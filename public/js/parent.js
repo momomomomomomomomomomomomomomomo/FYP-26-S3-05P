@@ -119,20 +119,103 @@
     }
     allow.addEventListener('change', paintAllowState);
 
+    // --- blocked categories -------------------------------------------------
+    // A checklist rather than a row of chips: there are three dozen of these,
+    // a parent needs to see at a glance which are ticked, and "tap to toggle"
+    // gave no way to say "all of them" short of thirty-six taps.
+    const KIND_LABEL = { GENRE: 'Genres', THEME: 'Themes', TOPIC: 'Topics' };
+    const KIND_ONE = { GENRE: 'genre', THEME: 'theme', TOPIC: 'topic' };
+    const KIND_ORDER = ['GENRE', 'THEME', 'TOPIC'];
+    const kindOf = (tag) => (KIND_LABEL[tag.category] ? tag.category : 'GENRE');
+
     const selected = new Set(c.blocked_genres);
-    const chips = el('div', { class: 'chips' }, allTags.map((tag) => {
-      const chip = el('button', {
-        class: `chip ${selected.has(tag.tag_name) ? 'blocked' : ''}`.trim(),
-        type: 'button',
-        text: tag.tag_name,
+    const boxes = new Map();
+
+    const blockAll = el('input', { type: 'checkbox' });
+    const tally = el('div', { class: 'tally' });
+
+    /** The running count under the list, and the state of the master box. */
+    function paintTally() {
+      const total = allTags.length;
+      const n = selected.size;
+
+      blockAll.checked = total > 0 && n === total;
+      // Neither on nor off: some are blocked. Without this the master box
+      // looks unticked while half the list is blocked.
+      blockAll.indeterminate = n > 0 && n < total;
+
+      clear(tally);
+      if (!n) {
+        tally.className = 'tally';
+        tally.appendChild(el('span', {},
+          [`Nothing is blocked. ${child.name} can see all ${total} categories.`]));
+        return;
+      }
+      if (n === total) {
+        tally.className = 'tally tally-warn';
+        tally.appendChild(el('span', {}, [
+          el('strong', { text: `All ${total} blocked.` }),
+          ` Every title carries at least one category, so ${child.name}'s library `
+          + 'will be empty apart from anything you unlock from a request.',
+        ]));
+        return;
+      }
+
+      const breakdown = KIND_ORDER.map((kind) => {
+        const hit = allTags.filter((t) => kindOf(t) === kind && selected.has(t.tag_name)).length;
+        if (!hit) return null;
+        return `${hit} ${hit === 1 ? KIND_ONE[kind] : KIND_LABEL[kind].toLowerCase()}`;
+      }).filter(Boolean);
+
+      tally.className = 'tally';
+      tally.appendChild(el('span', {}, [
+        el('strong', { text: `${n} of ${total} blocked` }),
+        ` (${breakdown.join(', ')}). ${child.name} will not see anything carrying them.`,
+      ]));
+    }
+
+    function tagRow(tag) {
+      const box = el('input', { type: 'checkbox' });
+      box.checked = selected.has(tag.tag_name);
+      box.addEventListener('change', () => {
+        if (box.checked) selected.add(tag.tag_name);
+        else selected.delete(tag.tag_name);
+        paintTally();
       });
-      chip.addEventListener('click', () => {
-        if (selected.has(tag.tag_name)) selected.delete(tag.tag_name);
-        else selected.add(tag.tag_name);
-        chip.classList.toggle('blocked');
-      });
-      return chip;
-    }));
+      boxes.set(tag.tag_name, box);
+      return el('label', { class: 'check-item' }, [
+        box,
+        el('span', { class: 'check-name', text: tag.tag_name }),
+        // How much of the shelf this one category covers, so a parent can see
+        // that blocking "Adventure" is not the same size of decision as
+        // blocking "Pirates".
+        el('span', {
+          class: 'check-count',
+          title: `${tag.content_count} title${tag.content_count === 1 ? '' : 's'}`,
+          text: String(tag.content_count),
+        }),
+      ]);
+    }
+
+    blockAll.addEventListener('change', () => {
+      if (blockAll.checked) allTags.forEach((tag) => selected.add(tag.tag_name));
+      else selected.clear();
+      boxes.forEach((box, name) => { box.checked = selected.has(name); });
+      paintTally();
+    });
+
+    const checklist = el('div', { class: 'check-scroll' },
+      KIND_ORDER.map((kind) => {
+        const inKind = allTags.filter((tag) => kindOf(tag) === kind);
+        if (!inKind.length) return null;
+        return el('div', { class: 'check-group' }, [
+          el('div', { class: 'check-group-head' }, [
+            el('span', { text: KIND_LABEL[kind] }),
+            el('span', { text: String(inKind.length) }),
+          ]),
+          el('div', { class: 'check-grid' }, inKind.map(tagRow)),
+        ]);
+      }).filter(Boolean));
 
     const body = el('div', { class: 'form-grid' }, [
       el('p', { class: 'muted small', style: { margin: 0 } },
@@ -152,12 +235,20 @@
       ]),
       el('div', { class: 'field' }, [
         el('label', { text: 'Blocked genres and topics' }),
-        el('span', { class: 'hint', text: 'Tap to block. Blocked ones turn red.' }),
-        chips,
+        el('span', { class: 'hint',
+          text: `Tick anything ${child.name} should not see. The number beside each one is `
+            + 'how many titles carry it.' }),
+        el('label', { class: 'checkbox check-all' }, [
+          blockAll,
+          el('span', {}, [el('strong', { text: 'Block everything' })]),
+        ]),
+        checklist,
+        tally,
       ]),
     ]);
 
     paintAllowState();
+    paintTally();
 
     const dialog = modal(`Controls for ${child.name}`, body, [
       el('button', { class: 'btn btn-outline', onclick: () => dialog.close() }, ['Cancel']),
@@ -193,7 +284,9 @@
       c.allow_content ? null : 'browsing is OFF',
       c.max_age === null ? 'any age rating' : `up to age ${c.max_age}`,
       c.daily_screen_limit === null ? 'no time limit' : `${c.daily_screen_limit} min/day`,
-      c.blocked_genres.length ? `${c.blocked_genres.length} genre(s) blocked` : 'no blocked genres',
+      c.blocked_genres.length
+        ? `${c.blocked_genres.length} categor${c.blocked_genres.length === 1 ? 'y' : 'ies'} blocked`
+        : 'no blocked categories',
     ].filter(Boolean).join(' · ');
 
     const screenBar = c.daily_screen_limit
