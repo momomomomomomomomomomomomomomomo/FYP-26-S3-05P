@@ -1,0 +1,4 @@
+content_type,title,description,author_creator,age_rating,reading_level,language,duration_minutes,cover_image_url,external_link,preview_url,tags
+VIDEO,Why Do Birds Sing at Dawn?,"Six minutes on the dawn chorus, and why it starts before the light does.",StoryNest Studio,6,BEGINNER,English,6,,https://example.com/videos/dawn-chorus,https://example.com/videos/dawn-chorus/preview,Birds|Science|Nature
+VIDEO,Build a Paper Bridge,"A follow-along build. One sheet of paper, no tape, and it holds a book.",Studio Pomelo,8,INTERMEDIATE,English,12,,https://example.com/videos/paper-bridge,,Inventions|Science|Art
+VIDEO,Storytime: The Smallest Lighthouse,"A narrated read-along with music, for winding down at the end of the day.",StoryNest Studio,5,BEGINNER,English,17,,https://example.com/videos/smallest-lighthouse,https://example.com/videos/smallest-lighthouse/preview,Adventure|Courage|Ocean

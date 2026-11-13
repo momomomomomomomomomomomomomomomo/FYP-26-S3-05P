@@ -404,10 +404,12 @@ OR  a parent has APPROVED it in content_requests
 ```
 
 …and if `parental_controls.allow_content` is off, *only* approved titles may be
-opened. The shelf still lists the rest, locked, so a child can see the library
-and ask for what is in it — that split lives in `contentListingClause` beside
-`contentScopeClause`, and only `contentScopeClause` ever gates a title.
-`max_age` falls back to the child's own age when a parent has not set one.
+opened. The library shelf lists **everything** regardless, marking each title
+the rules refuse with `locked` so a child can see what is there and ask for it;
+that flag comes from `lockedExpression()`, which is built from
+`contentScopeClause` so the two always agree. Only `contentScopeClause` ever
+gates a title. `max_age` falls back to the child's own age when a parent has
+not set one.
 
 **Screen time.** The reader posts one minute at a time to
 `POST /api/me/screen-time`; those minutes are summed from `audit_logs` for the

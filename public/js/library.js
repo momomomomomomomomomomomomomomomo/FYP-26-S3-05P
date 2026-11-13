@@ -44,24 +44,23 @@
     clear(host);
     if (!scope || !scope.restricted) return;
 
+    // What this says and does not say is deliberate. It explains that some
+    // covers are locked and how to ask for one. It never lists which
+    // categories a grown-up ruled out: that is their setting to know, and a
+    // child who notices a locked cover has worked it out for themselves rather
+    // than been told by the site.
     const bits = [];
     if (!scope.allowContent) {
-      bits.push('A grown-up has paused the library for you. You can still look at everything '
-        + 'here - tap a cover and you can ask them to unlock it.');
-    } else {
-      if (scope.maxAge !== null && scope.maxAge !== undefined) {
-        bits.push(`titles for ages ${scope.maxAge} and under`);
-      }
-      if (scope.blockedGenres && scope.blockedGenres.length) {
-        bits.push(`no ${scope.blockedGenres.join(' or ')}`);
-      }
+      bits.push('paused the library for now');
+    } else if (scope.maxAge !== null && scope.maxAge !== undefined) {
+      bits.push(`unlocked titles for ages ${scope.maxAge} and under`);
     }
-    if (!bits.length) return;
 
     host.appendChild(el('div', { class: 'alert alert-info' },
-      scope.allowContent
-        ? `Your grown-up set this library to show ${bits.join(', and ')}. Ask them if you want more.`
-        : bits[0]));
+      [bits.length
+        ? `Your grown-up has ${bits[0]}. Some covers here are locked \u2014 tap one and you `
+          + 'can ask them for it.'
+        : 'Some covers here are locked \u2014 tap one and you can ask a grown-up for it.']));
   }
 
   /** True once the signed-in reader is a child: fewer controls, bigger targets. */
@@ -77,8 +76,19 @@
    */
   function renderKidControls() {
     document.body.classList.add('kid-mode');
-    $('#filters').classList.add('hidden');
-    $('#filterToggle').classList.add('hidden');
+
+    // A child's library used to drop the Filters button and lay its topics out
+    // permanently down the page, so the two libraries did not look like the
+    // same site. What is *inside* the panel still differs - no sort, no reading
+    // level, no age, because none of those are a child's to set - but the
+    // control that opens it is the same control in the same place.
+    $$('#filters .filter-row > .field').forEach((field) => {
+      // Everything but the topics, which are the one filter a child owns.
+      if (!field.querySelector('#tagChips')) field.classList.add('hidden');
+    });
+    const topics = $('#tagChips').closest('.field');
+    topics.querySelector('label').textContent = 'What are you in the mood for?';
+    $('#tagChips').id = 'tagChipsKid';
 
     $('#pageTitle').textContent = VIDEOS_ONLY ? 'Things to watch' : 'My Library';
     $('#pageSub').textContent = VIDEOS_ONLY
@@ -88,13 +98,6 @@
       ? 'Look for animals, space, music\u2026'
       : 'Look for a dragon, a puppy, space\u2026';
 
-    // No format switch: each page is one format, and the nav is how a child
-    // moves between them.
-    const host = el('div', { class: 'kid-topics', id: 'kidControls' }, [
-      el('h2', { text: 'What are you in the mood for?' }),
-      el('div', { class: 'chips', id: 'tagChipsKid' }),
-    ]);
-    $('#filters').insertAdjacentElement('afterend', host);
   }
 
   /** Guests keep favourites against an email address, so show them back. */
@@ -133,10 +136,12 @@
       const data = await global.api.get('/api/content/tags');
       const host = $('#tagChipsKid') || $('#tagChips');
       clear(host);
-      // Children get topics and genres only: a theme like "Kindness" means
-      // little to them when they are hunting for dinosaurs.
-      const usable = data.items.filter((t) => t.content_count > 0
-        && (!isKid() || t.category !== 'THEME'));
+      // Every category, for every reader. Children used to lose the themes -
+      // Courage, Kindness and the like - on the grounds that they mean little
+      // to somebody hunting for dinosaurs. That was the last thing making a
+      // child's filter a different list from a grown-up's, and a short list is
+      // its own kind of hint about what is missing.
+      const usable = data.items.filter((tag) => tag.content_count > 0);
       usable.forEach((tag) => {
         host.appendChild(el('button', {
           class: `chip ${state.tags.includes(tag.tag_name) ? 'on' : ''}`.trim(),
@@ -178,31 +183,15 @@
       if (!data.items.length && !append) {
         // "Try clearing the filters" is wrong - and confusing - when the reason
         // the shelf is bare is a parental control the reader cannot clear.
-        const scope = global.SN.scope;
-        const paused = scope && scope.restricted && !scope.allowContent;
-        // The pinned format is not a filter anybody can clear, so it must not
-        // count towards "you have filters on".
-        const noFilters = !state.q && !state.reading_level
-          && !state.age_max && !state.tags.length;
-
-        if (paused) {
-          // The shelf is no longer emptied by a pause, so getting here means a
-          // pause AND something else - an age limit, a blocked genre, a search
-          // - has left nothing to show.
-          grid.appendChild(emptyState('\u23f8\ufe0f', 'Nothing to show here',
-            'Your library is paused, and nothing left matches what you are looking for. '
-            + 'Try clearing the search, or ask a grown-up.'));
-        } else if (scope && scope.restricted && noFilters) {
-          grid.appendChild(emptyState('\ud83d\udd12', 'Nothing to show yet',
-            'Your grown-up\u2019s settings are hiding everything in the library right now. '
-            + 'Ask them to allow a higher age rating.'));
-        } else {
-          grid.appendChild(emptyState(VIDEOS_ONLY ? '\ud83c\udfac' : '\ud83d\udcda',
-            'Nothing here yet',
-            state.q
-              ? `No ${VIDEOS_ONLY ? 'videos' : 'books'} match "${state.q}".`
-              : 'Try clearing the filters.'));
-        }
+        // Parental controls no longer empty a shelf - they lock covers on it -
+        // so an empty grid now means one thing only: the search or the topic
+        // chips matched nothing. The two branches that used to explain a
+        // library emptied by a grown-up are gone with the behaviour.
+        grid.appendChild(emptyState(VIDEOS_ONLY ? '\ud83c\udfac' : '\ud83d\udcda',
+          'Nothing here yet',
+          state.q
+            ? `No ${VIDEOS_ONLY ? 'videos' : 'books'} match "${state.q}".`
+            : 'Try clearing the filters.'));
       }
       data.items.forEach((item) => grid.appendChild(card(item)));
 
@@ -273,7 +262,7 @@
       $('#fLevel').value = '';
       $('#fAge').value = '';
       $('#fSort').value = 'popular';
-      $$('#tagChips .chip').forEach((c) => c.classList.remove('on'));
+      $$('#tagChips .chip, #tagChipsKid .chip').forEach((c) => c.classList.remove('on'));
       reload();
     });
 

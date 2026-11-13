@@ -318,6 +318,53 @@
     ]);
   }
 
+  /**
+   * A password box that starts masked, with a button to reveal it.
+   *
+   * For the places where somebody sets a password *for* someone else - a
+   * parent for their child, an administrator for any account. Those were plain
+   * text boxes, so the password sat on screen in full while it was typed and
+   * stayed there until the dialog closed.
+   *
+   * Masked by default, because nobody needs it readable over a shoulder.
+   * Revealable on purpose, because whoever typed it has to read it back to the
+   * person who will use it, and neither dialog has a confirm field to catch a
+   * typo - a mistyped password here locks somebody out of their own account
+   * with nothing to show what went wrong.
+   *
+   * Put the returned node in the form; read the value from `node.input`.
+   */
+  function passwordField(props) {
+    const input = el('input', {
+      type: 'password',
+      // Never offer to fill in the signed-in person's own password here: this
+      // field sets somebody else's.
+      autocomplete: 'new-password',
+      ...(props || {}),
+    });
+
+    const toggle = el('button', {
+      class: 'btn btn-sm btn-outline',
+      type: 'button',
+      'aria-label': 'Show the password',
+    }, ['Show']);
+
+    toggle.addEventListener('click', () => {
+      const wasShown = input.type === 'text';
+      input.type = wasShown ? 'password' : 'text';
+      toggle.textContent = wasShown ? 'Show' : 'Hide';
+      toggle.setAttribute('aria-label', wasShown ? 'Show the password' : 'Hide the password');
+      input.focus();
+    });
+
+    const node = el('div', { class: 'row' }, [
+      el('div', { class: 'grow' }, [input]),
+      toggle,
+    ]);
+    node.input = input;
+    return node;
+  }
+
   function skeletonGrid(count, target) {
     clear(target);
     for (let i = 0; i < count; i += 1) {
@@ -675,6 +722,7 @@
     el, $, $$, clear, fmt, card, coverEl, coverStyle, skeletonGrid, emptyState,
     toast, showError, showOk, modal, confirmDialog, init, renderNav, signOut, currentPath,
     previewDialog, guestFavouriteDialog, guestEmail, sampleParagraphs, homeFor, isStaff,
+    passwordField,
     get user() { return state.user; },
     get scope() { return state.scope; },
     state,

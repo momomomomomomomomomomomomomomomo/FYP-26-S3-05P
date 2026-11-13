@@ -140,37 +140,38 @@ function contentScopeClause(scope, alias = 'c') {
 /**
  * The same thing for a shelf: what a child may SEE rather than open.
  *
- * The one difference is the pause. A paused library used to come back empty,
- * which told a child nothing except that their library was broken. Here the
- * shelf still fills, every cover on it is locked, and opening one is what asks
- * a grown-up - the request flow that already existed, now reachable.
+ * Nothing. A shelf hides nothing from a child.
  *
- * Age and genre are deliberately NOT softened the same way. A child is not
- * meant to learn what their parent ruled out for them, and a locked cover
- * would tell them by being there at all. Those still hide.
+ * Every title is listed, and the ones they may not open are listed locked, so
+ * a child can see what is in the library and ask a grown-up for any of it.
+ * That is the whole difference between this and the gate: the gate decides
+ * what may be handed over, this decides what may be looked at, and only the
+ * first of them refuses anything.
  *
- * Nothing here is a substitute for the gate above: this clause only decides
- * what is listed, and every route that hands over a title still asks
- * contentScopeClause whether it may.
+ * It stays a named function rather than a missing clause so that the route
+ * reads as a deliberate choice instead of a forgotten filter.
  */
-function contentListingClause(scope, alias = 'c') {
-  if (!scope.restricted || scope.allowContent) return contentScopeClause(scope, alias);
-
-  const { conditions, params } = hidingConditions(scope, alias);
-  return {
-    clause: ` AND ((${conditions.join(' AND ')}) OR (${approvedSqlFor(scope, alias)}))`,
-    params: [...params, ...scope.approvedIds],
-  };
+function contentListingClause() {
+  return { clause: '', params: [] };
 }
 
 /**
- * True when a title is on the shelf but shut: the library is paused and this
- * one was not approved by name. The shelf shows it with a lock; opening it is
- * refused by contentScopeClause exactly as before.
+ * The gate turned inside out: a SQL expression that is true for a row the
+ * viewer may NOT open.
+ *
+ * Built from contentScopeClause itself rather than written out again, because
+ * a shelf that draws a lock wherever the gate would say no has to agree with
+ * the gate about every row, for ever. Two copies of this rule would drift, and
+ * the drift would show up as either a child opening something their parent
+ * blocked, or a lock on something they are perfectly entitled to read.
  */
-function isLockedForScope(scope, contentId) {
-  if (!scope || !scope.restricted || scope.allowContent) return false;
-  return !scope.approvedIds.includes(Number(contentId));
+function lockedExpression(scope, alias = 'c') {
+  const gate = contentScopeClause(scope, alias);
+  if (!gate.clause) return { sql: '0', params: [] };
+  return {
+    sql: `NOT (${gate.clause.replace(/^\s*AND\s*/i, '')})`,
+    params: gate.params,
+  };
 }
 
 /** Minutes of screen time a child has logged today. */
@@ -230,7 +231,7 @@ module.exports = {
   buildViewerScope,
   contentScopeClause,
   contentListingClause,
-  isLockedForScope,
+  lockedExpression,
   screenTimeUsedToday,
   assertScreenTimeRemaining,
   isParentOf,

@@ -10,6 +10,33 @@ const { ageFromDob, loadManagedChild, screenTimeUsedToday } = require('../utils/
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
+
+// A parent may block as many categories as the catalogue has, and the
+// catalogue grows whenever a librarian adds one. Both routes below used to cut
+// the list to the first 30 without saying so, which with 36 categories meant
+// "Block everything" saved 30 and quietly dropped 6 - the parent came back to
+// find six boxes unticked and no reason given. The bound is now high enough
+// never to be reached in practice, and reaching it is refused out loud rather
+// than trimmed in silence.
+const MAX_BLOCKED_GENRES = 200;
+
+/**
+ * Reads `blocked_genres` from a request body.
+ *
+ * @returns the list, or null when the field was not sent at all - which means
+ *   "leave the blocked categories alone", not "clear them".
+ */
+function readBlockedGenres(body) {
+  if (!Array.isArray(body.blocked_genres)) return null;
+  if (body.blocked_genres.length > MAX_BLOCKED_GENRES) {
+    throw ApiError.badRequest(
+      `That is more than ${MAX_BLOCKED_GENRES} categories, which is more than the library has.`,
+    );
+  }
+  // Duplicates would only collide on the table's own key; dropping them here
+  // keeps the stored list the same length as the one that was sent.
+  return [...new Set(body.blocked_genres.map((g) => v.str(g, 'Category', { max: 100 })))];
+}
 // A family belongs to its own parent. An administrator manages accounts from
 // the admin console; they do not get a seat in someone else's family.
 router.use(requireAuth, requireRole('ADULT'));
@@ -182,8 +209,7 @@ router.post('/', asyncHandler(async (req, res) => {
   const screenLimit = v.int(req.body.daily_screen_limit, 'Daily screen limit',
     { min: 0, max: 1440, required: false });
   const allowContent = v.bool(req.body.allow_content, true);
-  const blockedGenres = (Array.isArray(req.body.blocked_genres) ? req.body.blocked_genres : [])
-    .map((g) => v.str(g, 'Genre', { max: 100 })).slice(0, 30);
+  const blockedGenres = readBlockedGenres(req.body) || [];
 
   const hash = await bcrypt.hash(password, 12);
 
@@ -464,7 +490,7 @@ router.put('/:id/controls', asyncHandler(async (req, res) => {
   const screenLimit = v.int(req.body.daily_screen_limit, 'Daily screen limit',
     { min: 0, max: 1440, required: false });
   const allowContent = v.bool(req.body.allow_content, true);
-  const blockedGenres = Array.isArray(req.body.blocked_genres) ? req.body.blocked_genres : null;
+  const blockedGenres = readBlockedGenres(req.body);
 
   await db.transaction(async (conn) => {
     await conn.execute(
@@ -479,10 +505,10 @@ router.put('/:id/controls', asyncHandler(async (req, res) => {
 
     if (blockedGenres) {
       await conn.execute('DELETE FROM child_blocked_genres WHERE child_id = ?', [childId]);
-      for (const genre of blockedGenres.slice(0, 30)) {
+      for (const genre of blockedGenres) {
         await conn.execute(
           'INSERT IGNORE INTO child_blocked_genres (child_id, blocked_genre) VALUES (?, ?)',
-          [childId, v.str(genre, 'Genre', { max: 100 })],
+          [childId, genre],
         );
       }
     }
