@@ -84,7 +84,6 @@ p  { margin: 0 0 1em; }
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1rem; color: var(--ink); text-decoration: none; }
 .brand:hover { text-decoration: none; }
-.brand-mark { font-size: 1.15rem; line-height: 1; }
 
 .nav-links { display: flex; gap: 22px; margin: 0 auto; }
 .nav-links a { color: var(--ink-soft); font-size: .88rem; text-decoration: none; padding: 4px 0; border-bottom: 2px solid transparent; }
@@ -136,7 +135,6 @@ p  { margin: 0 0 1em; }
   background: var(--bg-panel); border-radius: var(--radius-lg);
   margin: 22px 0 34px; padding: 52px 24px 44px; text-align: center;
 }
-.hero-mark { font-size: 2.4rem; line-height: 1; margin-bottom: 6px; }
 .hero h1 { font-size: clamp(1.9rem, 5vw, 2.9rem); text-transform: uppercase; letter-spacing: -.02em; margin-bottom: .15em; }
 .hero-tagline { font-weight: 700; font-size: 1.02rem; margin-bottom: .4em; }
 .hero-sub { color: var(--ink-muted); max-width: 540px; margin: 0 auto 22px; }

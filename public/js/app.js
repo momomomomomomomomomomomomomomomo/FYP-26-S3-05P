@@ -460,7 +460,6 @@
 
     host.appendChild(el('div', { class: 'nav-inner' }, [
       el('a', { class: 'brand', href: '/' }, [
-        el('span', { class: 'brand-mark', text: '📖' }),
         el('span', { text: 'StoryNest' }),
       ]),
       links,
