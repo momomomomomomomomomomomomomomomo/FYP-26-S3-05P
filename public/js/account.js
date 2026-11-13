@@ -123,11 +123,16 @@
       const user = global.SN.user;
       const isChild = user.role === 'CHILD';
 
-      const name = el('input', { type: 'text', value: user.name, maxlength: '100' });
+      // A child's details belong to their parent, so the whole of this panel is
+      // shown to them read-only. The server refuses the change too; these
+      // attributes only save a child the trouble of discovering that.
+      const name = el('input', {
+        type: 'text', value: user.name, maxlength: '100', disabled: isChild,
+      });
       const email = el('input', {
         type: isChild ? 'text' : 'email', value: user.email || '', disabled: isChild,
       });
-      const level = el('select', {}, [
+      const level = el('select', { disabled: isChild }, [
         el('option', { value: '', text: 'Not set' }),
         el('option', { value: 'BEGINNER', text: 'Beginner' }),
         el('option', { value: 'INTERMEDIATE', text: 'Intermediate' }),
@@ -137,12 +142,17 @@
 
       host.appendChild(el('div', { class: 'panel' }, [
         el('h2', { style: { fontSize: '1.05rem' } }, ['Your details']),
+        isChild
+          ? el('p', { class: 'muted small', style: { margin: '-4px 0 4px' } }, [
+            'A grown-up looks after these for you. Ask them to change anything '
+            + 'here from their family page. Your password is yours to change, below.',
+          ])
+          : null,
         el('div', { class: 'form-grid two' }, [
           el('div', { class: 'field' }, [el('label', { text: 'Name' }), name]),
           el('div', { class: 'field' }, [
             el('label', { text: isChild ? 'Login ID' : 'Email' }),
             email,
-            isChild ? el('span', { class: 'hint', text: 'Only a grown-up can change this.' }) : null,
           ]),
           // Reading level sorts a reader's library; it means nothing for staff.
           global.SN.isStaff()
@@ -153,14 +163,7 @@
             el('input', { type: 'text', value: `${user.dob} (age ${user.age})`, disabled: true }),
           ]),
         ]),
-        el('div', {
-          style: {
-            marginTop: '14px',
-            display: 'flex',
-            gap: '10px'
-          }
-        }, [
-
+        isChild ? null : el('div', { style: { marginTop: '14px' } }, [
           el('button', {
             class: 'btn btn-primary',
             onclick: async (event) => {
@@ -186,12 +189,6 @@
             },
           }, ['Save changes']),
 
-        el('button', {
-          class: 'btn btn-danger',
-          onclick: () => {
-            $('#deleteAccountModal').classList.remove('hidden');
-          },
-        }, ['Delete account'])
         ]),
       ]));
 
@@ -342,7 +339,8 @@
     const bits = [];
     if (!scope.allowContent) bits.push('the library is paused - you can look, but you need to ask before opening');
     if (scope.maxAge !== null && scope.maxAge !== undefined) bits.push(`titles for ages ${scope.maxAge} and under`);
-    if (scope.blockedGenres && scope.blockedGenres.length) bits.push(`no ${scope.blockedGenres.join(' or ')}`);
+    // Blocked categories are not listed back to the child. See the note on the
+    // scope payload in server/routes/auth.js.
     if (scope.dailyScreenLimit !== null && scope.dailyScreenLimit !== undefined) {
       const left = scope.screenTimeLeft === undefined ? scope.dailyScreenLimit : scope.screenTimeLeft;
       bits.push(`${scope.dailyScreenLimit} minutes a day (${left} left today)`);

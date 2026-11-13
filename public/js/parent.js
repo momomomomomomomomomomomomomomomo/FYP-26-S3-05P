@@ -4,6 +4,7 @@
   'use strict';
   const {
     el, $, $$, clear, fmt, modal, confirmDialog, showError, toast, emptyState,
+    passwordField,
   } = global.SN;
 
   const LEVELS = [['', 'Not set'], ['BEGINNER', 'Beginner'],
@@ -37,8 +38,8 @@
       placeholder: 'e.g. leo (no email needed)',
     });
     const dob = el('input', { type: 'date', value: existing ? existing.dob : '' });
-    const password = el('input', {
-      type: 'text', maxlength: '100',
+    const password = passwordField({
+      maxlength: '100',
       placeholder: isNew ? 'At least 6 characters' : 'Leave blank to keep the current one',
     });
     const level = select(LEVELS, existing ? existing.reading_level : '');
@@ -62,7 +63,7 @@
               const res = await global.api.post('/api/children', {
                 name: name.value,
                 login_id: loginId.value,
-                password: password.value,
+                password: password.input.value,
                 dob: dob.value,
                 reading_level: level.value,
                 max_age: null,
@@ -75,7 +76,7 @@
               const patch = {
                 name: name.value, login_id: loginId.value, reading_level: level.value,
               };
-              if (password.value.trim()) patch.password = password.value;
+              if (password.input.value.trim()) patch.password = password.input.value;
               await global.api.patch(`/api/children/${existing.user_id}`, patch);
               dialog.close();
               toast('Saved.', 'ok');

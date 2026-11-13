@@ -175,7 +175,10 @@ router.get('/me', asyncHandler(async (req, res) => {
     restricted: scope.restricted,
     allowContent: scope.restricted ? scope.allowContent : true,
     maxAge: scope.restricted ? scope.maxAge : null,
-    blockedGenres: scope.restricted ? scope.blockedGenres : [],
+    // Which categories a parent blocked is deliberately NOT sent. It is their
+    // setting, not news for the child, and a field the page never receives is
+    // one no part of the interface can let slip. The server still enforces it;
+    // the reader simply finds those covers locked, like any other.
     dailyScreenLimit: scope.restricted ? scope.dailyScreenLimit : null,
   };
   if (scope.restricted && scope.dailyScreenLimit !== null) {
@@ -194,6 +197,24 @@ router.get('/me', asyncHandler(async (req, res) => {
 // PATCH /api/auth/me  - edit your own profile
 // -----------------------------------------------------------------------------
 router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
+  // A child's own details are their parent's to set, from the family page:
+  // name, login id, reading level and date of birth. The only thing on this
+  // route a child owns is their password, which is handled separately below.
+  //
+  // Refused rather than quietly dropped. Ignoring the field would answer 200
+  // and hand back a profile that had not changed, leaving a child to believe
+  // their new name saved and wonder why it keeps coming back.
+  if (req.user.role === 'CHILD') {
+    const theirParents = ['name', 'reading_level', 'email', 'dob']
+      .filter((field) => req.body[field] !== undefined);
+    if (theirParents.length) {
+      throw ApiError.forbidden(
+        'A grown-up looks after your name, login ID and reading level. '
+        + 'Ask them to change it on their family page.',
+      );
+    }
+  }
+
   const updates = [];
   const params = [];
 
@@ -206,8 +227,9 @@ router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
     params.push(v.oneOf(req.body.reading_level, 'Reading level',
       ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'], { required: false }));
   }
-  // Children cannot change their own login id; their parent owns it.
-  if (req.body.email !== undefined && req.user.role !== 'CHILD') {
+  // A child never reaches this: the guard at the top of the route sends them
+  // to their parent before anything here runs.
+  if (req.body.email !== undefined) {
     const email = v.email(req.body.email);
     const clash = await db.queryOne(
       'SELECT user_id FROM users WHERE email = ? AND user_id <> ?',
@@ -237,6 +259,15 @@ router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
 // DELETE /api/auth/me - delete your own account
 // -----------------------------------------------------------------------------
 router.delete('/me', requireAuth, asyncHandler(async (req, res) => {
+  // A child's account is their parent's to close, from the family page, the
+  // same as their name and reading level. A child closing it themselves would
+  // take their reading history, their badges and their parent's oversight with
+  // it, from a button they can reach on their own and cannot undo.
+  if (req.user.role === 'CHILD') {
+    throw ApiError.forbidden(
+      'A grown-up looks after your account. Ask them if you would like it removed.',
+    );
+  }
 
   await db.execute(
     'DELETE FROM users WHERE user_id = ?',

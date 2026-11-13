@@ -8,9 +8,18 @@
   'use strict';
   const {
     el, $, $$, clear, fmt, modal, confirmDialog, showError, toast, emptyState,
+    passwordField,
   } = global.SN;
 
-  const state = { userFilter: { role: '', status: '', q: '' }, logFilter: { activity_type: '', actor_role: '' } };
+  // `limit` grows when somebody asks for more. Without it the list asked for
+  // the server's default page and then announced the full total above it,
+  // so a site with 87 accounts showed 50 under a heading saying 87 and gave
+  // no way at all to reach the other 37.
+  const USER_PAGE = 50;
+  const state = {
+    userFilter: { role: '', status: '', q: '', limit: USER_PAGE },
+    logFilter: { activity_type: '', actor_role: '' },
+  };
 
   function panel(name) { return $(`#panel-${name}`); }
   const ROLE_PILL = {
@@ -94,13 +103,17 @@
       ['SUSPENDED', 'Suspended']].map(([v, l]) => el('option', { value: v, text: l })));
     status.value = state.userFilter.status;
 
+    // A new filter is a new list, so the page size goes back to the first page
+    // rather than keeping however far the last one had been expanded.
+    const refilter = () => { state.userFilter.limit = USER_PAGE; loadUsers(); };
+
     let timer;
     search.addEventListener('input', () => {
       clearTimeout(timer);
-      timer = setTimeout(() => { state.userFilter.q = search.value.trim(); loadUsers(); }, 250);
+      timer = setTimeout(() => { state.userFilter.q = search.value.trim(); refilter(); }, 250);
     });
-    role.addEventListener('change', () => { state.userFilter.role = role.value; loadUsers(); });
-    status.addEventListener('change', () => { state.userFilter.status = status.value; loadUsers(); });
+    role.addEventListener('change', () => { state.userFilter.role = role.value; refilter(); });
+    status.addEventListener('change', () => { state.userFilter.status = status.value; refilter(); });
 
     host.appendChild(el('div', { class: 'filters' },
       el('div', { class: 'filter-row' }, [
@@ -164,13 +177,30 @@
       ]),
     ]));
 
+    const shown = data.items.length;
+    const more = Math.max(data.total - shown, 0);
+
     host.appendChild(el('div', { class: 'panel' }, [
       el('div', { class: 'panel-head' }, [
-        el('h3', { style: { fontSize: '.95rem' } }, [`${data.total} account(s)`]),
+        el('h3', { style: { fontSize: '.95rem' },
+          text: more
+            ? `${shown} of ${data.total} account${data.total === 1 ? '' : 's'}`
+            : `${data.total} account${data.total === 1 ? '' : 's'}` }),
       ]),
       rows.length
         ? table(['Account', 'Role', 'Age', 'Family', 'Status', 'Joined', ''], rows)
         : el('p', { class: 'muted small', style: { margin: 0 } }, ['Nothing matches those filters.']),
+      more
+        ? el('div', { class: 'row', style: { justifyContent: 'center', marginTop: '14px' } }, [
+          el('button', {
+            class: 'btn btn-outline btn-sm',
+            onclick: () => {
+              state.userFilter.limit += USER_PAGE;
+              loadUsers();
+            },
+          }, [`Show ${Math.min(more, USER_PAGE)} more`]),
+        ])
+        : null,
     ]));
   }
 
@@ -184,7 +214,7 @@
       .map(([v, l]) => el('option', { value: v, text: l })));
     role.value = user.role;
     if (user.role === 'CHILD') role.disabled = true;
-    const password = el('input', { type: 'text', placeholder: 'Leave blank to keep the current one' });
+    const password = passwordField({ placeholder: 'Leave blank to keep the current one' });
 
     const dialog = modal(`Edit ${user.name}`, el('div', { class: 'form-grid' }, [
       field('Name', name),
@@ -204,7 +234,7 @@
           try {
             const patch = { name: name.value };
             if (!role.disabled) patch.role = role.value;
-            if (password.value.trim()) patch.password = password.value;
+            if (password.input.value.trim()) patch.password = password.input.value;
             await global.api.patch(`/api/admin/users/${user.user_id}`, patch);
             dialog.close();
             toast('Saved.', 'ok');

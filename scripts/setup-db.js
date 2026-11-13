@@ -20,6 +20,12 @@ const { importBooks } = require('../database/import-books');
 const { seedCommunity } = require('../database/seed-community');
 
 const FORCE = process.argv.includes('--force') || process.argv.includes('-f');
+// A managed database - Appwrite, RDS and the like - is provisioned for you and
+// the account you are given usually cannot DROP or CREATE a database at all.
+// With --managed the schema is loaded into the database that is already there
+// and those two statements are left out. It still drops every table it owns,
+// so it is every bit as destructive as the normal run.
+const MANAGED = process.argv.includes('--managed');
 const ROOT = path.join(__dirname, '..');
 
 const DEMO_PASSWORDS = {
@@ -69,10 +75,10 @@ function sqlFile(name) {
     throw new Error(`DB_NAME "${db}" is not a usable MySQL database name.`);
   }
   return sql
-    .replace(/DROP\s+DATABASE\s+IF\s+EXISTS\s+`?[A-Za-z0-9_$]+`?/gi,
-      `DROP DATABASE IF EXISTS \`${db}\``)
-    .replace(/CREATE\s+DATABASE\s+`?[A-Za-z0-9_$]+`?/gi,
-      `CREATE DATABASE \`${db}\``)
+    .replace(/DROP\s+DATABASE\s+IF\s+EXISTS\s+`?[A-Za-z0-9_$]+`?\s*;/gi,
+      MANAGED ? '' : `DROP DATABASE IF EXISTS \`${db}\`;`)
+    .replace(/CREATE\s+DATABASE\s+`?[A-Za-z0-9_$]+`?[^;]*;/gi,
+      MANAGED ? '' : `CREATE DATABASE \`${db}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
     .replace(/^\s*USE\s+`?[A-Za-z0-9_$]+`?\s*;/gim,
       `USE \`${db}\`;`);
 }
@@ -93,6 +99,9 @@ async function run() {
       port: config.db.port,
       user: config.db.user,
       password: config.db.password,
+      // Carried over from config so that seeding a managed database works the
+      // same way the app's own pool connects to it.
+      ...(config.db.ssl ? { ssl: config.db.ssl } : {}),
       multipleStatements: true,
     });
   } catch (err) {
@@ -101,6 +110,10 @@ async function run() {
     console.error('Check that MySQL is running and that DB_USER / DB_PASSWORD in .env are right.');
     process.exit(1);
   }
+
+  // On a managed database the schema goes into what is already provisioned, so
+  // the connection has to be pointed at it before anything runs.
+  if (MANAGED) await conn.changeUser({ database: config.db.database });
 
   // Refuse to wipe a database that already has accounts, unless asked twice.
   const [dbs] = await conn.query('SHOW DATABASES LIKE ?', [config.db.database]);

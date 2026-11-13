@@ -8,7 +8,7 @@ const audit = require('../utils/audit');
 const badges = require('../utils/badges');
 const { ApiError, asyncHandler } = require('../utils/errors');
 const {
-  contentScopeClause, contentListingClause, isLockedForScope,
+  contentScopeClause, contentListingClause, lockedExpression,
   assertScreenTimeRemaining, ageFromDob,
 } = require('../utils/access');
 const { requireAuth, requireReader } = require('../middleware/auth');
@@ -148,11 +148,13 @@ function normaliseRow(row) {
 // GET /api/content  - the library, already filtered for whoever is asking
 // -----------------------------------------------------------------------------
 router.get('/', asyncHandler(async (req, res) => {
-  // The shelf, not the gate. When a parent has paused the library this lists
-  // the titles anyway, each one marked `locked`, so a child sees a library
-  // rather than a blank page and can ask for what they want. Opening one is
-  // still refused: that goes through contentScopeClause in loadVisibleContent.
+  // The shelf, not the gate. It lists every title and marks the ones this
+  // viewer may not open, so a child sees the whole library and can ask a
+  // grown-up for anything in it - whether it is held back by a pause, an age
+  // limit or a blocked category. Opening one is still refused, by
+  // contentScopeClause in loadVisibleContent.
   const scoped = contentListingClause(req.scope, 'c');
+  const locked = lockedExpression(req.scope, 'c');
   const where = [];
   const params = [];
 
@@ -211,12 +213,19 @@ router.get('/', asyncHandler(async (req, res) => {
   const rows = await db.query(
     `SELECT c.content_id, c.content_type, c.title, c.description, c.author_creator,
             c.age_rating, c.reading_level, c.language, c.duration_minutes,
-            c.cover_image_url, c.preview_url, c.created_at, ${ratingSelect}
+            c.cover_image_url, c.preview_url, c.created_at, ${ratingSelect},
+            ${locked.sql} AS locked
        FROM content c
       WHERE 1 = 1${whereSql}${scoped.clause}
-      ORDER BY ${sort}
+      -- Whatever the reader chose to sort by, what they can open comes first.
+      -- A child whose grown-up has locked part of the library should not have
+      -- to scroll past it to reach their own books. It is one list, not two:
+      -- nothing marks where the locked ones begin, they simply follow.
+      -- It orders by the SELECT alias above, so the expression is not written
+      -- out twice and cannot be handed the wrong parameters.
+      ORDER BY locked, ${sort}
       LIMIT ${limit} OFFSET ${offset}`,
-    [...params, ...scoped.params],
+    [...locked.params, ...params, ...scoped.params],
   );
 
   const totalRow = await db.queryOne(
@@ -226,7 +235,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   let items = (await withTags(rows)).map(normaliseRow);
   items = await withPersonalState(items, req.user ? req.user.user_id : null);
-  items = items.map((i) => ({ ...i, locked: isLockedForScope(req.scope, i.content_id) }));
+  items = items.map((i) => ({ ...i, locked: !!Number(i.locked) }));
 
   res.json({ items, total: Number(totalRow.n || 0), limit, offset });
 }));
@@ -235,16 +244,18 @@ router.get('/', asyncHandler(async (req, res) => {
 // GET /api/content/tags  - the filter list, minus anything blocked for a child
 // -----------------------------------------------------------------------------
 router.get('/tags', asyncHandler(async (req, res) => {
-  const blocked = req.scope.restricted ? req.scope.blockedGenres : [];
-  const clause = blocked.length
-    ? ` WHERE t.tag_name NOT IN (${blocked.map(() => '?').join(',')})`
-    : '';
+  // Every category, for everybody. A child's blocked categories used to be
+  // dropped from this list, which both shortened their filter for no visible
+  // reason and told them which ones were missing to anyone who counted.
+  //
+  // Nothing here says which are blocked, and nothing should: a locked cover on
+  // the shelf is the child's own observation to make, not a label the site
+  // hangs on them. Filtering by one simply returns titles they cannot open.
   const rows = await db.query(
     `SELECT t.tag_id, t.tag_name, t.category,
             (SELECT COUNT(*) FROM content_tags ct WHERE ct.tag_id = t.tag_id) AS content_count
-       FROM tags t${clause}
+       FROM tags t
       ORDER BY t.category, t.tag_name`,
-    blocked,
   );
   res.json({
     items: rows.map((r) => ({

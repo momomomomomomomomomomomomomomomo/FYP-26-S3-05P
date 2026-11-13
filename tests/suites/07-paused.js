@@ -70,19 +70,20 @@ module.exports = {
         shelf.status === 200 && shelf.body.items.length > 0,
         `HTTP ${shelf.status}, ${shelf.body && shelf.body.items.length} items`);
 
-      const listed = shelf.body.items.map((i) => Number(i.content_id));
-      t.check('every title on it is one the age and genre rules already allowed',
-        listed.every((id) => passesRules.has(id) || approved.has(id)),
-        listed.filter((id) => !passesRules.has(id) && !approved.has(id)).slice(0, 6));
+      // A shelf hides nothing now: age limits and blocked categories lock a
+      // cover rather than removing it, exactly as a pause does. `passesRules`
+      // is kept so the next check can prove the lock lands on the right rows.
+      const everyTitle = await db.queryOne('SELECT COUNT(*) AS n FROM content');
+      t.check('the shelf lists the whole catalogue, not a filtered slice',
+        shelf.body.total === Number(everyTitle.n),
+        { listed: shelf.body.total, catalogue: Number(everyTitle.n) });
 
-      t.check('a pause does not reveal anything the other controls hide',
-        listed.length === [...passesRules, ...approved].filter(
-          (id, i, a) => a.indexOf(id) === i).length,
-        { listed: listed.length, allowedByRules: passesRules.size });
+      t.check('and a title the age and genre rules already allowed is still listed',
+        shelf.body.items.some((i) => passesRules.has(Number(i.content_id))));
 
       const lockedItems = shelf.body.items.filter((i) => i.locked);
       t.check('the covers are marked locked', lockedItems.length > 0, lockedItems.length);
-      t.check('everything not approved by name is locked',
+      t.check('while paused, everything not approved by name is locked',
         shelf.body.items.every((i) => i.locked === !approved.has(Number(i.content_id))),
         shelf.body.items.filter((i) => i.locked === approved.has(Number(i.content_id)))
           .map((i) => i.title).slice(0, 5));
@@ -142,6 +143,48 @@ module.exports = {
         }
         t.check('Story Chat never names a locked title', leaked === 0, `${leaked} probes leaked`);
       }
+      // --- blocking every category must store every category ---------------
+      // The two controls routes used to cut the list to the first 30 without
+      // saying so. With 36 categories in the catalogue, "Block everything"
+      // saved 30 and silently lost 6, and the parent found six boxes unticked
+      // when they came back. The count is read from the catalogue rather than
+      // written here, so adding categories cannot quietly reintroduce it.
+      const allCategories = (await db.query('SELECT tag_name FROM tags'))
+        .map((x) => x.tag_name);
+
+      const blockAll = await parent.put(`/api/children/${childId}/controls`, {
+        max_age: before ? before.max_age : null,
+        daily_screen_limit: before ? before.daily_screen_limit : null,
+        allow_content: false,
+        blocked_genres: allCategories,
+      });
+      t.check(`blocking all ${allCategories.length} categories is accepted`,
+        blockAll.status === 200, blockAll.body);
+
+      const stored = (await db.query(
+        'SELECT blocked_genre FROM child_blocked_genres WHERE child_id = ?', [childId],
+      )).map((x) => x.blocked_genre);
+      t.check('and every one of them is stored',
+        stored.length === allCategories.length
+        && allCategories.every((g) => stored.includes(g)),
+        { sent: allCategories.length, stored: stored.length,
+          missing: allCategories.filter((g) => !stored.includes(g)) });
+
+      // And the parent's own view reads them all back.
+      const readBack = await parent.get('/api/children');
+      const kid = (readBack.body.children || readBack.body.items || [])
+        .find((k) => Number(k.user_id) === childId);
+      t.check('and the family page reads all of them back',
+        kid && kid.controls.blocked_genres.length === allCategories.length,
+        kid && kid.controls.blocked_genres.length);
+
+      // Far too many is refused rather than trimmed.
+      const silly = await parent.put(`/api/children/${childId}/controls`, {
+        allow_content: false,
+        blocked_genres: Array.from({ length: 300 }, (_, i) => `Category ${i}`),
+      });
+      t.check('an absurd list is refused, not quietly cut down', silly.status === 400,
+        `HTTP ${silly.status}`);
     } finally {
       // Put the account back exactly as it was.
       await parent.put(`/api/children/${childId}/controls`, {

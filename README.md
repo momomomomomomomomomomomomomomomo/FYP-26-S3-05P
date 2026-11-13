@@ -141,16 +141,19 @@ OR  a parent has APPROVED it for them
 
 **Seeing and opening are separate.** `contentScopeClause` is the gate: it
 decides what a child may *open*, and every route that hands over a title or its
-text goes through it. `contentListingClause` decides what a shelf *lists*, and
-the two differ in exactly one place. When `parental_controls.allow_content` is
-off, the shelf still lists everything the age and genre rules allow, each cover
-marked `locked`, and opening one leads to the "ask a grown-up" request that was
-already there. An empty library told a child only that something was broken; a
-locked one tells them what to do about it.
+text goes through it. A shelf hides nothing. The library lists the whole
+catalogue and marks every title the gate would refuse with `locked`, whatever
+the reason — a pause, an age limit or a blocked category — and tapping a locked
+cover leads to the "ask a grown-up" request. An empty library told a child only
+that something was broken; a locked one tells them what to do about it.
 
-Age limits and blocked genres are *not* softened the same way: those still hide
-a title outright, because a child is not meant to learn what their parent ruled
-out for them, and a locked cover would say so by being there.
+The lock is not a second copy of the rule. `lockedExpression()` is built from
+`contentScopeClause` itself and used as a SELECT column, so the shelf draws a
+lock on exactly the rows the gate refuses and the two cannot drift apart.
+
+Everything that *suggests* a title — recommendations, recent reviews, Story
+Chat — still uses the gate, because offering a child something they cannot open
+is no kindness. Only the library grid lists locked titles.
 
 ## A library that looks used
 

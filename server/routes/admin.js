@@ -70,7 +70,11 @@ router.get('/users', asyncHandler(async (req, res) => {
   const where = [];
   const params = [];
 
-  const role = v.oneOf(req.query.role, 'Role', ['ADMIN', 'ADULT', 'CHILD'], { required: false });
+  // LIBRARIAN belongs here as much as the rest. Leaving it out did not hide
+  // librarians from the list, it made the filter throw 400 the moment anyone
+  // chose "Librarians" from a dropdown that has always offered it.
+  const role = v.oneOf(req.query.role, 'Role',
+    ['ADMIN', 'LIBRARIAN', 'ADULT', 'CHILD'], { required: false });
   if (role) {
     where.push('u.role = ?');
     params.push(role);
@@ -99,7 +103,11 @@ router.get('/users', asyncHandler(async (req, res) => {
             (SELECT COUNT(*) FROM parent_child_relationships r WHERE r.parent_id = u.user_id) AS child_count
        FROM users u
        ${whereSql}
-      ORDER BY u.created_at DESC
+      -- Staff first, then the newest accounts. Ordering purely by date put the
+      -- four staff accounts - the oldest on the site, and the ones carrying the
+      -- most power - behind every demo family and off the end of the first
+      -- page, which is where an administrator goes looking for them.
+      ORDER BY FIELD(u.role, 'ADMIN', 'LIBRARIAN', 'ADULT', 'CHILD'), u.created_at DESC
       LIMIT ${limit} OFFSET ${offset}`,
     params,
   );

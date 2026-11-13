@@ -572,8 +572,6 @@ input.page-glyph::placeholder { opacity: .3; }
 .kid-mode .card-meta { font-size: .82rem; }
 .kid-mode .chip { font-size: .92rem; padding: 9px 16px; border-radius: 999px; }
 .kid-mode .card-preview { font-size: .72rem; padding: 5px 10px; }
-.kid-topics { margin: 4px 0 22px; }
-.kid-topics h2 { font-size: .95rem; margin: 0 0 10px; }
 .kid-switch { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .kid-switch .chip { font-weight: 600; }
 

@@ -6,6 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server/index.js",
+    "build": "echo \"StoryNest has no build step: the front end is plain HTML, CSS and JS, served as-is by Express.\"",
     "dev": "node --watch server/index.js",
     "db:setup": "node scripts/setup-db.js",
     "db:reset": "node scripts/setup-db.js --force",

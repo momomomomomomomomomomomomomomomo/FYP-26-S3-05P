@@ -10,6 +10,14 @@ const config = {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'storynest',
+    // Managed MySQL - Appwrite, RDS, PlanetScale - only accepts TLS, and
+    // mysql2 will not negotiate it unless it is handed an ssl option. A local
+    // MySQL usually has no certificate, so this is opt-in rather than on by
+    // default. DB_SSL=true verifies the server's certificate against the
+    // system roots, which is what a managed provider expects.
+    ...(process.env.DB_SSL === 'true'
+      ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } }
+      : {}),
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'storynest-dev-secret-change-me',
