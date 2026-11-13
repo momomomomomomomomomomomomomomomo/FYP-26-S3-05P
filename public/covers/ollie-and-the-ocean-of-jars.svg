@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Ollie and the Ocean of Jars">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#03045e"/><stop offset="1" stop-color="#0077b6"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="356" cy="140" r="3.2" fill="#48cae4" opacity="0.84"/><circle cx="400" cy="232" r="4.5" fill="#48cae4" opacity="0.81"/><circle cx="53" cy="419" r="1.8" fill="#48cae4" opacity="0.45"/><circle cx="586" cy="44" r="2.5" fill="#48cae4" opacity="0.37"/><circle cx="52" cy="289" r="4.7" fill="#48cae4" opacity="0.75"/><circle cx="440" cy="45" r="3.5" fill="#48cae4" opacity="0.60"/><circle cx="128" cy="377" r="1.3" fill="#48cae4" opacity="0.75"/><circle cx="95" cy="31" r="3.9" fill="#48cae4" opacity="0.72"/><circle cx="511" cy="347" r="4.3" fill="#48cae4" opacity="0.72"/><circle cx="31" cy="156" r="1.6" fill="#48cae4" opacity="0.68"/><circle cx="232" cy="140" r="4.2" fill="#48cae4" opacity="0.51"/><circle cx="517" cy="243" r="1.8" fill="#48cae4" opacity="0.58"/><circle cx="343" cy="186" r="2.2" fill="#48cae4" opacity="0.77"/><circle cx="358" cy="161" r="3.9" fill="#48cae4" opacity="0.64"/><circle cx="242" cy="249" r="1.9" fill="#48cae4" opacity="0.39"/><circle cx="353" cy="230" r="2.8" fill="#48cae4" opacity="0.50"/><circle cx="272" cy="52" r="4.1" fill="#48cae4" opacity="0.45"/><circle cx="80" cy="360" r="3.4" fill="#48cae4" opacity="0.66"/><circle cx="551" cy="119" r="2.9" fill="#48cae4" opacity="0.55"/><circle cx="376" cy="292" r="1.9" fill="#48cae4" opacity="0.45"/><circle cx="368" cy="20" r="2.1" fill="#48cae4" opacity="0.74"/><circle cx="454" cy="193" r="2.5" fill="#48cae4" opacity="0.60"/><circle cx="157" cy="137" r="4.4" fill="#48cae4" opacity="0.49"/><circle cx="355" cy="44" r="4.5" fill="#48cae4" opacity="0.69"/><circle cx="270" cy="90" r="4.3" fill="#48cae4" opacity="0.49"/><circle cx="138" cy="202" r="4.1" fill="#48cae4" opacity="0.53"/>
+    <g transform="translate(300 290)">
+      <path d="M-110,0 C-70,-70 50,-70 92,0 C50,70 -70,70 -110,0 Z" fill="#90e0ef"/>
+      <path d="M92,0 L148,-44 L148,44 Z" fill="#48cae4"/>
+      <circle cx="40" cy="-16" r="11" fill="#03045e"/>
+      <path d="M-40,-34 C-10,-6 -10,6 -40,34" fill="none" stroke="#03045e" stroke-width="5" opacity=".45"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#90e0ef" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">OLLIE AND</tspan><tspan x="300" dy="68.2">THE OCEAN OF</tspan><tspan x="300" dy="68.2">JARS</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Nia Osei</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#90e0ef">STORYNEST</text>
+</svg>

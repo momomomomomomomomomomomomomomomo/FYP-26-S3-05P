@@ -7,7 +7,10 @@ const v = require('../utils/validate');
 const audit = require('../utils/audit');
 const badges = require('../utils/badges');
 const { ApiError, asyncHandler } = require('../utils/errors');
-const { contentScopeClause, assertScreenTimeRemaining, ageFromDob } = require('../utils/access');
+const {
+  contentScopeClause, contentListingClause, isLockedForScope,
+  assertScreenTimeRemaining, ageFromDob,
+} = require('../utils/access');
 const { requireAuth, requireReader } = require('../middleware/auth');
 
 const router = express.Router();
@@ -24,6 +27,10 @@ const REACTIONS = [
   { emoji: '\u{1F44D}', label: 'Liked it' },
 ];
 const REACTION_EMOJI = REACTIONS.map((r) => r.emoji);
+
+// How much of a book someone without a reading account may see. Enough to tell
+// whether they want it, not enough to be the book.
+const GUEST_PREVIEW_PAGES = 4;
 
 // A Guest may favourite by email; this stops the endpoint being used to write
 // junk rows in bulk.
@@ -141,7 +148,11 @@ function normaliseRow(row) {
 // GET /api/content  - the library, already filtered for whoever is asking
 // -----------------------------------------------------------------------------
 router.get('/', asyncHandler(async (req, res) => {
-  const scoped = contentScopeClause(req.scope, 'c');
+  // The shelf, not the gate. When a parent has paused the library this lists
+  // the titles anyway, each one marked `locked`, so a child sees a library
+  // rather than a blank page and can ask for what they want. Opening one is
+  // still refused: that goes through contentScopeClause in loadVisibleContent.
+  const scoped = contentListingClause(req.scope, 'c');
   const where = [];
   const params = [];
 
@@ -185,7 +196,9 @@ router.get('/', asyncHandler(async (req, res) => {
   }
 
   const sort = SORTS[String(req.query.sort || 'popular')] || SORTS.popular;
-  const limit = v.limit(req.query.limit, 24, 60);
+  // The ceiling is the librarian's catalogue screen, which lists every title
+  // on one page. Readers never ask for more than a shelf-full.
+  const limit = v.limit(req.query.limit, 24, 300);
   const offset = v.offset(req.query.offset);
 
   const whereSql = where.length ? ` AND ${where.join(' AND ')}` : '';
@@ -213,6 +226,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   let items = (await withTags(rows)).map(normaliseRow);
   items = await withPersonalState(items, req.user ? req.user.user_id : null);
+  items = items.map((i) => ({ ...i, locked: isLockedForScope(req.scope, i.content_id) }));
 
   res.json({ items, total: Number(totalRow.n || 0), limit, offset });
 }));
@@ -383,6 +397,9 @@ router.get('/:id', asyncHandler(async (req, res) => {
        FROM feedback WHERE content_id = ? AND status = 'ACTIVE'`,
     [id],
   );
+  const pageCount = await db.queryOne(
+    'SELECT COUNT(*) AS n FROM content_pages WHERE content_id = ?', [id],
+  );
 
   const reviews = await db.query(
     `SELECT f.feedback_id, f.rating, f.review, f.created_at, f.user_id,
@@ -394,22 +411,26 @@ router.get('/:id', asyncHandler(async (req, res) => {
     [id],
   );
 
-  let payload = normaliseRow({ ...tagged, ...ratings });
+  let payload = normaliseRow({ ...tagged, ...ratings, page_count: Number(pageCount.n || 0) });
   [payload] = await withPersonalState([payload], req.user ? req.user.user_id : null);
 
-  // "More like this": shares at least one tag, still inside the viewer's scope.
+  // "More like this": shares at least one tag, is the same kind of thing, and
+  // is still inside the viewer's scope. Matching the type matters because books
+  // and videos live on separate shelves - suggesting a video under a book sends
+  // the reader somewhere the Library will not take them.
   const scoped = contentScopeClause(req.scope, 'c');
   const related = await db.query(
     `SELECT c.content_id, c.title, c.content_type, c.age_rating, c.cover_image_url,
             c.duration_minutes, NULL AS rating_avg, 0 AS rating_count
        FROM content c
       WHERE c.content_id <> ?
+        AND c.content_type = ?
         AND EXISTS (SELECT 1 FROM content_tags a
                       JOIN content_tags b ON b.tag_id = a.tag_id
                      WHERE a.content_id = c.content_id AND b.content_id = ?)
         ${scoped.clause}
       ORDER BY RAND() LIMIT 4`,
-    [id, id, ...scoped.params],
+    [id, payload.content_type, id, ...scoped.params],
   );
 
   const reactions = await reactionsFor(id, req.user ? req.user.user_id : null);
@@ -508,6 +529,70 @@ router.get('/guest-favourites/:email', guestFavouriteLimiter, asyncHandler(async
     [email, ...scoped.params],
   );
   res.json({ items: (await withTags(rows)).map(normaliseRow) });
+}));
+
+// -----------------------------------------------------------------------------
+// GET /api/content/:id/pages  - the text of a book
+//
+// This is the content itself, not a description of it, so loadVisibleContent
+// decides it exactly as it decides opening a title. A child outside the title's
+// scope gets the same 403 and the same "ask a grown-up" path they get on the
+// title page, and never a page of text. How much of the text comes back then
+// depends on who is asking, which is worked out below.
+// -----------------------------------------------------------------------------
+router.get('/:id/pages', asyncHandler(async (req, res) => {
+  const id = v.int(req.params.id, 'Content id', { min: 1 });
+  const item = await loadVisibleContent(req, id);
+
+  // Who gets the whole book.
+  //
+  // A reader, obviously. A librarian too, because a librarian writes these
+  // pages and cannot proof-read a book four pages at a time. That is where it
+  // stops being like reading: the routes that record anything - progress,
+  // screen time, feedback - sit behind requireReader, so a librarian going
+  // through a book earns no badges, keeps no place and leaves no history.
+  //
+  // An administrator stays on the preview, like a visitor. Cataloguing is not
+  // their duty, which is the same reason they cannot reach /api/catalog at all.
+  const role = req.user ? req.user.role : null;
+  const isReader = role === 'ADULT' || role === 'CHILD';
+  const fullText = isReader || role === 'LIBRARIAN';
+  const limit = fullText ? null : GUEST_PREVIEW_PAGES;
+
+  const [{ total }] = await db.query(
+    'SELECT COUNT(*) AS total FROM content_pages WHERE content_id = ?', [id],
+  );
+  const totalPages = Number(total);
+
+  // The cap is applied in the query rather than by trimming afterwards, so the
+  // rest of the text never leaves the database for someone not entitled to it.
+  const rows = await db.query(
+    `SELECT page_number, heading, body, illustration
+       FROM content_pages WHERE content_id = ? ORDER BY page_number${limit ? ' LIMIT ?' : ''}`,
+    limit ? [id, limit] : [id],
+  );
+
+  res.json({
+    content_id: id,
+    title: item.title,
+    author_creator: item.author_creator,
+    // A title with no pages is not an error: the reader falls back to a sample
+    // built from the blurb, which is what the video titles still use.
+    has_text: rows.length > 0,
+    // True when there is more text than was sent. The reader shows the sign-up
+    // gate on the strength of this rather than counting pages itself.
+    preview: !fullText,
+    preview_pages: limit,
+    total_pages: totalPages,
+    more_pages: Math.max(totalPages - rows.length, 0),
+    pages: rows.map((r) => ({
+      page_number: Number(r.page_number),
+      heading: r.heading,
+      // Paragraphs are stored as blank-line separated text.
+      paragraphs: String(r.body).split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean),
+      illustration: r.illustration,
+    })),
+  });
 }));
 
 // -----------------------------------------------------------------------------

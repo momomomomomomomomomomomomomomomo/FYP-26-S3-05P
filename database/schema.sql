@@ -100,6 +100,21 @@ CREATE TABLE content (
     INDEX idx_content_age (age_rating)
 );
 
+-- The pages of a book. A title with no rows here still works - the reader falls
+-- back to a generated sample - but a title with pages is a real, readable book.
+CREATE TABLE content_pages (
+    page_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    content_id BIGINT NOT NULL,
+    page_number INT NOT NULL,
+    heading VARCHAR(200) NULL,
+    body TEXT NOT NULL,
+    -- A decorative motif for the page: an emoji, or a path to artwork.
+    illustration VARCHAR(255) NULL,
+    FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_content_page (content_id, page_number),
+    INDEX idx_pages_content (content_id, page_number)
+);
+
 CREATE TABLE tags (
     tag_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     tag_name VARCHAR(100) UNIQUE NOT NULL,
@@ -113,6 +128,20 @@ CREATE TABLE content_tags (
     FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE,
     INDEX idx_content_tags_tag (tag_id)
+);
+
+-- A reader's own topics of interest, chosen on their account page. They are
+-- the same tags the catalogue uses, so an interest maps straight onto content
+-- without a second vocabulary to keep in step. Story Chat falls back to these
+-- when somebody asks for a recommendation without saying what they want.
+CREATE TABLE user_interests (
+    user_id BIGINT NOT NULL,
+    tag_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, tag_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE,
+    INDEX idx_user_interests_tag (tag_id)
 );
 
 CREATE TABLE saved_content (
@@ -185,6 +214,9 @@ CREATE TABLE chat_sessions (
     user_id BIGINT NOT NULL,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ended_at TIMESTAMP NULL,
+    -- The topic Story Chat last offered ("fancy a mystery?"), so a bare
+    -- "yes please" can be answered without guessing from the text.
+    pending_tag VARCHAR(100) NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 

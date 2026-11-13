@@ -1,0 +1,9 @@
+content_type,title,description,author_creator,age_rating,reading_level,language,duration_minutes,cover_image_url,external_link,preview_url,tags
+BOOK,The Smallest Lighthouse,A lighthouse keeper's daughter decides the light is not bright enough and sets out to fix it herself.,Marla Quist,7,BEGINNER,English,18,,,,Adventure|Courage|Ocean
+BOOK,Nine Ways to Lose a Hat,"Tam loses a hat on Monday, another on Tuesday, and by Friday the whole town is looking.",Petra Oyelaran,6,BEGINNER,English,14,,,,Humour|Family|Friendship
+BOOK,The Boy Who Counted Rain,"Every drop, every puddle, every storm. Arun counts them all, until the year it does not rain at all.",Devi Raman,9,INTERMEDIATE,English,32,,,,Nature|Weather|Science
+BOOK,Grandmother's Wolf,"""There is a wolf in the garden,"" said Grandmother, who was ninety-one and not often wrong.",Ines Varga,10,INTERMEDIATE,English,41,,,,Fantasy|Family|Animals
+BOOK,Thirty Seconds of Brave,Nia has to walk into the hall and say one sentence. This is the story of the thirty seconds before she does.,Marla Quist,8,INTERMEDIATE,English,22,,,,Courage|School|Friendship
+BOOK,A Short History of the Spoon,Longer and considerably stranger than anyone expects.,Dr Yuki Tanabe,11,ADVANCED,English,55,,,,Non-Fiction|History|Inventions
+VIDEO,How a Seed Becomes a Tree,Time-lapse footage following one acorn across four seasons.,StoryNest Studio,5,,English,9,,,,Nature|Science|Non-Fiction
+BOOK,The Quietest Dragon,,Fen Marlowe,6,,,,,,,Fantasy|Kindness

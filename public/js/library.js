@@ -1,4 +1,10 @@
-/* The Library and Watch pages. Watch is the same page pinned to videos. */
+/* The Library and Watch pages.
+ *
+ * One file, two shelves. The Library is books and Watch is videos, and neither
+ * is a mixed shelf: the nav offers both, so a format switch inside a page would
+ * only be a second way to do what the nav already does, and a reader who came
+ * to read would have to filter videos back out every visit. The page decides
+ * its own format and nothing in the interface can change it. */
 (function library(global) {
   'use strict';
   const {
@@ -6,18 +12,29 @@
   } = global.SN;
 
   const VIDEOS_ONLY = global.location.pathname.replace(/\.html$/, '') === '/watch';
+  // The one thing about this shelf that no control may change.
+  const PINNED_TYPE = VIDEOS_ONLY ? 'VIDEO' : 'BOOK';
   const PAGE_SIZE = 24;
 
   const state = {
-    q: '', type: VIDEOS_ONLY ? 'VIDEO' : '', reading_level: '', age_max: '',
+    q: '', type: PINNED_TYPE, reading_level: '', age_max: '',
     sort: 'popular', tags: [], offset: 0, total: 0,
   };
 
+  /**
+   * Reads any filter passed in the address bar - the tag chips on a title page
+   * link here with ?tag=.
+   *
+   * @returns {boolean} whether a filter arrived that lives *inside* the panel.
+   *   The search box is visible either way, so a ?q= does not count.
+   */
   function readQueryString() {
     const params = new URLSearchParams(global.location.search);
     if (params.get('q')) state.q = params.get('q');
     if (params.get('tag')) state.tags = [params.get('tag')];
-    if (!VIDEOS_ONLY && params.get('type')) state.type = params.get('type');
+    // A ?type= in the address bar is ignored. The page is the format, and an
+    // old link asking the Library for videos belongs on Watch instead.
+    return Boolean(params.get('tag'));
   }
 
   /** Explains to a child why their library is smaller than the whole catalogue. */
@@ -29,7 +46,8 @@
 
     const bits = [];
     if (!scope.allowContent) {
-      bits.push('A grown-up has paused the library for you - only titles they unlock will show up here.');
+      bits.push('A grown-up has paused the library for you. You can still look at everything '
+        + 'here - tap a cover and you can ask them to unlock it.');
     } else {
       if (scope.maxAge !== null && scope.maxAge !== undefined) {
         bits.push(`titles for ages ${scope.maxAge} and under`);
@@ -62,26 +80,17 @@
     $('#filters').classList.add('hidden');
     $('#filterToggle').classList.add('hidden');
 
-    $('#pageTitle').textContent = 'My Library';
-    $('#pageSub').textContent = 'Everything you can read and watch.';
-    $('#q').placeholder = 'Look for a dragon, a puppy, space\u2026';
+    $('#pageTitle').textContent = VIDEOS_ONLY ? 'Things to watch' : 'My Library';
+    $('#pageSub').textContent = VIDEOS_ONLY
+      ? 'Every video you can play.'
+      : 'Every book you can read.';
+    $('#q').placeholder = VIDEOS_ONLY
+      ? 'Look for animals, space, music\u2026'
+      : 'Look for a dragon, a puppy, space\u2026';
 
+    // No format switch: each page is one format, and the nav is how a child
+    // moves between them.
     const host = el('div', { class: 'kid-topics', id: 'kidControls' }, [
-      // The Watch page is already pinned to videos, so a format switch there
-      // would only let a child undo the page they chose.
-      VIDEOS_ONLY ? null : el('div', { class: 'kid-switch' }, [
-        ['', '\u2728 Everything'], ['BOOK', '\ud83d\udcd6 Books'], ['VIDEO', '\u25b6 Videos'],
-      ].map(([value, label]) => el('button', {
-        class: `chip ${state.type === value ? 'on' : ''}`.trim(),
-        type: 'button',
-        text: label,
-        onclick: (event) => {
-          state.type = value;
-          $$('#kidControls .kid-switch .chip').forEach((c) => c.classList.remove('on'));
-          event.currentTarget.classList.add('on');
-          reload();
-        },
-      }))),
       el('h2', { text: 'What are you in the mood for?' }),
       el('div', { class: 'chips', id: 'tagChipsKid' }),
     ]);
@@ -171,20 +180,28 @@
         // the shelf is bare is a parental control the reader cannot clear.
         const scope = global.SN.scope;
         const paused = scope && scope.restricted && !scope.allowContent;
-        const noFilters = !state.q && !state.type && !state.reading_level
+        // The pinned format is not a filter anybody can clear, so it must not
+        // count towards "you have filters on".
+        const noFilters = !state.q && !state.reading_level
           && !state.age_max && !state.tags.length;
 
         if (paused) {
-          grid.appendChild(emptyState('\u23f8\ufe0f', 'Your library is paused',
-            'A grown-up turned off browsing for now. Titles they unlock for you will still '
-            + 'appear here - ask them if you would like something to read.'));
+          // The shelf is no longer emptied by a pause, so getting here means a
+          // pause AND something else - an age limit, a blocked genre, a search
+          // - has left nothing to show.
+          grid.appendChild(emptyState('\u23f8\ufe0f', 'Nothing to show here',
+            'Your library is paused, and nothing left matches what you are looking for. '
+            + 'Try clearing the search, or ask a grown-up.'));
         } else if (scope && scope.restricted && noFilters) {
           grid.appendChild(emptyState('\ud83d\udd12', 'Nothing to show yet',
             'Your grown-up\u2019s settings are hiding everything in the library right now. '
             + 'Ask them to allow a higher age rating.'));
         } else {
-          grid.appendChild(emptyState('\ud83d\udcda', 'Nothing here yet',
-            state.q ? `No titles match "${state.q}".` : 'Try clearing the filters.'));
+          grid.appendChild(emptyState(VIDEOS_ONLY ? '\ud83c\udfac' : '\ud83d\udcda',
+            'Nothing here yet',
+            state.q
+              ? `No ${VIDEOS_ONLY ? 'videos' : 'books'} match "${state.q}".`
+              : 'Try clearing the filters.'));
         }
       }
       data.items.forEach((item) => grid.appendChild(card(item)));
@@ -211,35 +228,48 @@
 
   async function start() {
     await global.SN.init({ active: VIDEOS_ONLY ? '/watch' : '/library' });
-    readQueryString();
+    const arrivedFiltered = readQueryString();
 
     if (VIDEOS_ONLY) {
       $('#pageTitle').textContent = 'Watch';
       $('#pageSub').textContent = 'Every video you can play.';
-      const typeField = $('#fType').closest('.field');
-      if (typeField) typeField.classList.add('hidden');
+      $('#q').setAttribute('aria-label', 'Search the videos');
+    } else {
+      $('#pageTitle').textContent = 'Library';
+      $('#pageSub').textContent = 'Every book you can read.';
     }
 
     $('#q').value = state.q;
-    $('#fType').value = state.type;
     $('#fSort').value = state.sort;
 
     $('#q').addEventListener('input', (e) => debouncedSearch(e.target.value));
-    $('#fType').addEventListener('change', (e) => { state.type = e.target.value; reload(); });
     $('#fLevel').addEventListener('change', (e) => { state.reading_level = e.target.value; reload(); });
     $('#fAge').addEventListener('change', (e) => { state.age_max = e.target.value; reload(); });
     $('#fSort').addEventListener('change', (e) => { state.sort = e.target.value; reload(); });
-    $('#filterToggle').addEventListener('click', () => $('#filters').classList.toggle('collapsed'));
+    $('#filterToggle').addEventListener('click', () => {
+      const panel = $('#filters');
+      panel.classList.toggle('collapsed');
+      $('#filterToggle').setAttribute('aria-expanded', String(!panel.classList.contains('collapsed')));
+    });
+
+    // The panel starts shut. The one exception is arriving with a filter already
+    // applied - from a tag chip on a title page - where leaving it shut would
+    // narrow the shelf with nothing on screen to say why.
+    if (arrivedFiltered) {
+      $('#filters').classList.remove('collapsed');
+    }
+    $('#filterToggle').setAttribute('aria-expanded',
+      String(!$('#filters').classList.contains('collapsed')));
+    $('#filterToggle').setAttribute('aria-controls', 'filters');
     $('#loadMore').addEventListener('click', () => load(true));
     $('#clearFilters').addEventListener('click', () => {
       state.q = '';
-      state.type = VIDEOS_ONLY ? 'VIDEO' : '';
+      // state.type is not cleared: the format is the page, not a filter.
       state.reading_level = '';
       state.age_max = '';
       state.sort = 'popular';
       state.tags = [];
       $('#q').value = '';
-      $('#fType').value = state.type;
       $('#fLevel').value = '';
       $('#fAge').value = '';
       $('#fSort').value = 'popular';

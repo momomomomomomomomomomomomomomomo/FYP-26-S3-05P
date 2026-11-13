@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Girl With the Loudest Laugh">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6a4c93"/><stop offset="1" stop-color="#ff9b85"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <g transform="translate(300 280)">
+      <circle cx="0" cy="0" r="92" fill="#ffe66d"/>
+      <rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(0)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(30)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(60)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(90)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(120)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(150)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(180)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(210)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(240)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(270)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(300)" opacity=".9"/><rect x="-6" y="-152" width="12" height="40" rx="6" fill="#ffe66d" transform="rotate(330)" opacity=".9"/>
+    </g>
+    <path d="M0,420 Q150,350 300,420 T600,420 V470 H0 Z" fill="#d88c9a" opacity=".55"/>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="385" width="500" height="2" fill="#ffe66d" opacity=".9"/>
+  <text x="300" y="467.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE GIRL</tspan><tspan x="300" dy="68.2">WITH THE</tspan><tspan x="300" dy="68.2">LOUDEST</tspan><tspan x="300" dy="68.2">LAUGH</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Otis Vance</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#ffe66d">STORYNEST</text>
+</svg>

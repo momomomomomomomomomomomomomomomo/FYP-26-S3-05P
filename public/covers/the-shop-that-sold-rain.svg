@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Shop That Sold Rain">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a2545"/><stop offset="1" stop-color="#8e5572"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <path d="M40,120 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M72,190 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M104,260 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M136,330 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M168,120 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M200,190 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M232,260 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M264,330 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M296,120 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M328,190 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M360,260 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M392,330 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M424,120 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M456,190 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M488,260 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M520,330 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M552,120 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/><path d="M584,190 l-10,34" stroke="#c08497" stroke-width="5" stroke-linecap="round" opacity=".6"/>
+    <g transform="translate(300 300)">
+      <path d="M-130,10 A130,130 0 0,1 130,10 Z" fill="#ffd6e0"/>
+      <path d="M-130,10 A44,44 0 0,1 -42,10 A44,44 0 0,1 46,10 A44,44 0 0,1 130,10"
+            fill="none" stroke="#4a2545" stroke-width="5" opacity=".45"/>
+      <path d="M0,10 L0,112 C0,136 -34,136 -34,112" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" opacity=".85"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#ffd6e0" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE SHOP</tspan><tspan x="300" dy="68.2">THAT SOLD</tspan><tspan x="300" dy="68.2">RAIN</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Mira Halloway</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#ffd6e0">STORYNEST</text>
+</svg>

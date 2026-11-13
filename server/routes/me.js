@@ -21,6 +21,105 @@ const CARD_COLUMNS = `c.content_id, c.content_type, c.title, c.description, c.au
   NULL AS rating_avg, 0 AS rating_count`;
 
 // -----------------------------------------------------------------------------
+// Interests - the topics a reader wants to be offered
+// -----------------------------------------------------------------------------
+// These feed Story Chat: asked for "something to read" with nothing else to go
+// on, it answers from this list rather than from whatever is most popular.
+const MAX_INTERESTS = 12;
+
+// GET /api/me/interests  - what is on offer, and what they have picked
+router.get('/interests', asyncHandler(async (req, res) => {
+  // Only topics their own library can answer. A child whose parent has blocked
+  // a genre is not shown it, so they cannot choose something and then be told
+  // it is unavailable every time they ask.
+  const scoped = contentScopeClause(req.scope, 'c');
+  const available = await db.query(
+    `SELECT t.tag_name, t.category, COUNT(*) AS titles
+       FROM tags t
+       JOIN content_tags ct ON ct.tag_id = t.tag_id
+       JOIN content c ON c.content_id = ct.content_id
+      WHERE 1 = 1${scoped.clause}
+      GROUP BY t.tag_id, t.tag_name, t.category
+      ORDER BY t.tag_name`,
+    scoped.params,
+  );
+  const chosen = await db.query(
+    `SELECT t.tag_name FROM user_interests ui
+       JOIN tags t ON t.tag_id = ui.tag_id
+      WHERE ui.user_id = ?
+      ORDER BY ui.created_at`,
+    [req.user.user_id],
+  );
+
+  res.json({
+    max: MAX_INTERESTS,
+    available: available.map((r) => ({
+      tag: r.tag_name, category: r.category, titles: Number(r.titles),
+    })),
+    interests: chosen.map((r) => r.tag_name),
+  });
+}));
+
+// PUT /api/me/interests  - replace the list
+router.put('/interests', asyncHandler(async (req, res) => {
+  // An explicit empty list clears the interests, which is a real thing to want.
+  // Anything that is not a list at all is a malformed request, and treating it
+  // as "clear everything" would quietly throw away what the reader had saved.
+  if (req.body.interests !== undefined && !Array.isArray(req.body.interests)) {
+    throw ApiError.badRequest('Interests must be a list of topic names.');
+  }
+  if (req.body.interests === undefined) {
+    throw ApiError.badRequest('Interests are required. Send an empty list to clear them.');
+  }
+  const raw = req.body.interests;
+  if (raw.length > MAX_INTERESTS) {
+    throw ApiError.badRequest(`Pick up to ${MAX_INTERESTS} interests.`);
+  }
+
+  const wanted = [...new Set(raw.map((x) => v.str(x, 'Interest', { max: 100 })))];
+
+  // Resolve against the tags this reader can actually see, not against the tag
+  // table at large. A name that is unknown, or that belongs to a genre their
+  // grown-up has blocked, is refused rather than stored: the list on the
+  // account page should never hold a topic they are not allowed to be offered.
+  let tagIds = [];
+  if (wanted.length) {
+    const scoped = contentScopeClause(req.scope, 'c');
+    const rows = await db.query(
+      `SELECT DISTINCT t.tag_id, t.tag_name
+         FROM tags t
+         JOIN content_tags ct ON ct.tag_id = t.tag_id
+         JOIN content c ON c.content_id = ct.content_id
+        WHERE t.tag_name IN (${wanted.map(() => '?').join(',')})${scoped.clause}`,
+      [...wanted, ...scoped.params],
+    );
+    const known = new Set(rows.map((r) => r.tag_name));
+    const unknown = wanted.filter((t) => !known.has(t));
+    if (unknown.length) {
+      throw ApiError.badRequest(`"${unknown[0]}" is not a topic you can pick from.`);
+    }
+    tagIds = rows.map((r) => Number(r.tag_id));
+  }
+
+  await db.execute('DELETE FROM user_interests WHERE user_id = ?', [req.user.user_id]);
+  for (const tagId of tagIds) {
+    await db.execute(
+      'INSERT INTO user_interests (user_id, tag_id) VALUES (?, ?)',
+      [req.user.user_id, tagId],
+    );
+  }
+
+  await audit.logFor(req, {
+    activityType: 'PROFILE_UPDATE',
+    description: `Set interests: ${wanted.length ? wanted.join(', ') : 'none'}`,
+    targetTable: 'user_interests',
+    targetId: req.user.user_id,
+  });
+
+  res.json({ interests: wanted });
+}));
+
+// -----------------------------------------------------------------------------
 // Saved lists (favourites and watchlist)
 // -----------------------------------------------------------------------------
 router.get('/saved', asyncHandler(async (req, res) => {

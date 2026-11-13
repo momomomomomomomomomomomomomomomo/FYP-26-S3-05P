@@ -23,6 +23,11 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'same-origin');
+  // Only in production: sent over plain HTTP in development it would pin a
+  // browser to https://localhost and make the dev server unreachable.
+  if (config.env === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; "
@@ -62,9 +67,12 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
 
 app.use(notFound);
 
-// Anything that is not an API call falls back to the home page.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+// A page that does not exist says so. Serving the home page with a 200 here
+// would tell both the reader and a search engine that a mistyped address is a
+// real page; none of these pages is client-side routed, so there is nothing
+// that needs the old catch-all.
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
 });
 
 app.use(errorHandler);

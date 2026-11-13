@@ -106,10 +106,13 @@ npm run db:setup
 
 This one command:
 
-1. creates the `storynest` database and all 22 tables (`database/schema.sql`),
-2. loads 24 sample titles, 18 tags and 7 badges (`database/seed.sql`),
+1. creates the `storynest` database and all 24 tables (`database/schema.sql`),
+2. loads the sample titles, tags and badges (`database/seed.sql`),
 3. creates the demo accounts and the per-role test accounts, with passwords
-   hashed using bcrypt.
+   hashed using bcrypt,
+4. adds the full-text books from `database/books/`,
+5. adds the demo families and the reviews, reading history, reactions and
+   favourites that make the library look used.
 
 You should see:
 
@@ -118,17 +121,46 @@ StoryNest database setup
 ------------------------
 Target: mysql://root@127.0.0.1:3306/storynest
 
-1/3  Creating tables ...
-2/3  Loading the sample library ...
-3/3  Creating demo and test accounts ...
+1/5  Creating tables ...
+2/5  Loading the sample library ...
+3/5  Creating demo and test accounts ...
+4/5  Adding the full-text books ...
+5/5  Filling the library with readers ...
 
 Done.
-  11 accounts, 24 titles, 18 tags.
+  80 accounts, 86 titles, 36 tags.
+  78 of those titles are full books, with 2029 pages of text.
+  459 reviews from 26 demo families (43 children).
 ```
+
+followed by the list of sign-ins. The accounts and passwords are also kept in
+`ACCOUNTS.md`.
 
 > **Careful:** the script **drops** any existing `storynest` database. It
 > refuses to run if one already contains accounts — use `npm run db:reset` when
 > you really do want to wipe and start again.
+
+### Moving the database to another machine
+
+The command above is reproducible: run it anywhere and you get the same titles,
+the same accounts, the same reviews and the same dates. Nothing in the seed is
+measured from the day it runs, so a copy built next month matches this one.
+
+If you would rather carry the finished database across than rebuild it, import
+the full export instead of running step 5:
+
+```bash
+mysql -u root -p < database/storynest-full.sql
+```
+
+That file holds the schema and every row, drops and recreates `storynest`, and
+produces a database identical to the one `npm run db:setup` builds — all 24
+tables match row for row. Use whichever route suits the machine; both end up in
+the same place.
+
+Only the passwords differ between the two routes, and only in their stored
+form: bcrypt salts each hash separately, so the hashes are never byte-identical
+even though the passwords themselves are the same.
 
 ---
 
@@ -147,6 +179,34 @@ Open <http://localhost:3000> in your browser.
 
 For development, `npm run dev` restarts the server whenever you save a file.
 
+### Running the tests
+
+```bash
+npm test                 # every suite
+npm test -- scope        # one suite, by name
+npm test -- --keep       # leave the test database up afterwards, to poke at
+```
+
+The tests build their own database (`storynest_test`), start their own server
+on port 3999, run against that, and drop the database when they finish. They
+never touch the database named in your `.env`, which is what makes it safe for
+them to check destructive things like whether a librarian can really delete a
+title.
+
+There are six suites, run in this order:
+
+| Suite | What it covers |
+|---|---|
+| `data` | The shape of a fresh install: no broken references, every book has pages and cover art, no child holds an interest they are not allowed to be offered |
+| `permissions` | Every role against every protected endpoint — a route added without a guard fails here |
+| `flows` | What people actually do: browsing, searching, favourites, reading, reviews, unlock requests, parental controls, the catalogue, administration, Story Chat |
+| `scope` | What a restricted child may see, computed from the rules and checked against every endpoint that returns titles — including guessing ids and probing Story Chat |
+| `validation` | Input that should be refused: bad ids, out-of-range numbers, oversized text, `javascript:` links, malformed payloads |
+| `chatbot` | Intent classification, interest-led recommendations, the question-and-answer flow, and that no suggestion ever leaves the reader's scope |
+
+Nothing extra is installed to run them: no test framework, so `npm test` works
+on a clean checkout.
+
 ---
 
 ## 7. Sign in and look around
@@ -154,7 +214,7 @@ For development, `npm run dev` restarts the server whenever you save a file.
 | Role | Sign in with | Password | What to look at |
 |---|---|---|---|
 | **Administrator** | `admin@storynest.local` | `Admin123!` | *Admin* → accounts, reports, announcements, audit log |
-| **Librarian** | `librarian@storynest.local` | `Librarian123!` | *Catalogue* → add, edit and remove titles, categories, bulk import |
+| **Librarian** | `librarian@storynest.local` | `Librarian123!` | *Catalogue* → add, edit and remove titles, write a book's pages, categories, bulk import |
 | **Adult** | `parent@storynest.local` | `Parent123!` | *Family* → Leo and Ada, their controls, one pending request |
 | **Adult** | `daniel@storynest.local` | `Parent123!` | A second family, so the admin list is not trivial |
 | **Child** | `leo` | `storynest1` | Age 8, mysteries blocked, 60 min/day |
@@ -228,10 +288,17 @@ mysql -u root -p storynest -e "SELECT user_id, role, name, email FROM users;"
 ```
 storynest/
 ├── database/
-│   ├── schema.sql          # all 22 tables — drops and recreates the database
-│   └── seed.sql            # sample titles, tags and badges
+│   ├── schema.sql          # all 24 tables — drops and recreates the database
+│   ├── seed.sql            # sample titles, tags and badges
+│   ├── storynest-full.sql  # the finished database, schema and all rows
+│   ├── books/              # 78 full books, one file each, pages and all
+│   ├── videos.js           # cover art and categories for the video titles
+│   ├── seed-community.js   # the demo families and everything they wrote
+│   └── import-books.js     # loads database/books/ into the catalogue
 ├── scripts/
-│   └── setup-db.js         # runs both SQL files, then creates the accounts
+│   ├── setup-db.js         # runs both SQL files, creates accounts, loads books
+│   ├── import-books.js     # adds the books to a database that already exists
+│   └── make-covers.js      # draws public/covers/*.svg from database/books/
 ├── server/
 │   ├── index.js            # Express app: middleware, routes, static files
 │   ├── config.js           # reads .env
@@ -246,7 +313,7 @@ storynest/
 │   │   ├── children.js     # adult: child accounts, parental controls, requests
 │   │   ├── chat.js         # Story Chat sessions and messages
 │   │   ├── admin.js        # users, reports, announcements, audit log
-│   │   └── catalog.js      # the Librarian's routes: titles, categories, bulk import
+│   │   └── catalog.js      # the Librarian's routes: titles, pages, categories, bulk import
 │   └── utils/
 │       ├── access.js       # who may see what — the parental-control rules
 │       ├── chatbot.js      # Story Chat: retrieve, rank (BM25), verify, explain
@@ -271,7 +338,44 @@ storynest/
 
 ---
 
-## 10. Notes for the marker / next developer
+## 10. Running it somewhere real
+
+Everything above sets the site up on one machine for marking and demonstration.
+If it is ever put on a server that other people reach, three things change.
+
+**Serve it over HTTPS.** The sign-in cookie is marked `Secure` as soon as
+`NODE_ENV=production`, which means the browser will only send it over HTTPS —
+over plain HTTP nobody would be able to stay signed in. The app also starts
+sending `Strict-Transport-Security` in production, so a browser that has seen
+the site once will refuse to fall back to HTTP. Put it behind a reverse proxy
+that terminates TLS (nginx, Caddy, or a platform that does it for you); the app
+already sets `trust proxy`, so it reads the real client address from
+`X-Forwarded-For` rather than seeing every request as coming from the proxy.
+
+**Set a real `JWT_SECRET`.** The default in `server/config.js` is a development
+placeholder, and the app refuses to start in production while it is still in
+place. Any long random string will do:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
+
+**Change every password in `ACCOUNTS.md`.** They are published in this
+repository's documentation; they exist so a marker can sign in, not to protect
+anything.
+
+```bash
+NODE_ENV=production JWT_SECRET=... npm start
+```
+
+In production the app also stops explaining itself in error messages: a
+database outage returns "The site is temporarily unavailable" rather than the
+advice about checking MySQL and `.env`, which is for whoever is running it, not
+for whoever is reading.
+
+---
+
+## 11. Notes for the marker / next developer
 
 **The four kinds of user**
 
@@ -281,9 +385,9 @@ storynest/
 | Add, edit or remove a title | ❌ | ❌ | ❌ | ❌ — that is the **Librarian's** job |
 | Have a reader profile (favourites, progress, badges, Story Chat) | ❌ | ✅ | ✅ | ❌ — staff accounts have none |
 | Preview a title (blurb, opening lines, trailer) | ✅ | ✅ | ✅ | ✅ |
-| Save favourites, track progress, earn badges | ✅ favourites, against an email | ✅ | ✅ | ✅ |
-| React to a title with one emoji | ❌ | ✅ | ✅ | ✅ |
-| Story Chat | ❌ | ✅ (filtered) | ✅ | ✅ |
+| Save favourites, track progress, earn badges | ✅ favourites, against an email | ✅ | ✅ | ❌ — no reader profile |
+| React to a title with one emoji | ❌ | ✅ | ✅ | ❌ — no reader profile |
+| Story Chat | ❌ | ✅ (filtered) | ✅ | ❌ — no reader profile |
 | Ask to unlock a blocked title | — | ✅ | — | — |
 | Create and manage child accounts | ❌ | ❌ | ✅ **their own children only** | ✅ all |
 | Set age limits, blocked genres, screen time | ❌ | ❌ | ✅ | ❌ — a family belongs to its parent |
@@ -299,7 +403,10 @@ the browser at all. A title is visible to a child when:
 OR  a parent has APPROVED it in content_requests
 ```
 
-…and if `parental_controls.allow_content` is off, *only* approved titles show.
+…and if `parental_controls.allow_content` is off, *only* approved titles may be
+opened. The shelf still lists the rest, locked, so a child can see the library
+and ask for what is in it — that split lives in `contentListingClause` beside
+`contentScopeClause`, and only `contentScopeClause` ever gates a title.
 `max_age` falls back to the child's own age when a parent has not set one.
 
 **Screen time.** The reader posts one minute at a time to

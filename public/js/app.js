@@ -62,6 +62,7 @@
     CONTENT_IMPORT: 'Bulk imported titles',
     CONTENT_CREATE: 'Added a title',
     CONTENT_UPDATE: 'Edited a title',
+    CONTENT_PAGES_UPDATE: 'Edited the pages of a book',
     CONTENT_DELETE: 'Removed a title',
     ANNOUNCEMENT: 'Posted an announcement',
     ADMIN_USER_UPDATE: 'Edited an account',
@@ -139,8 +140,8 @@
     }));
     if (options.locked) {
       box.appendChild(el('div', { class: 'cover-lock' }, [
-        el('div', { text: '🔒' }),
-        el('div', { text: 'Ask a grown-up' }),
+        el('div', { class: 'cover-lock-glyph', text: '🔒' }),
+        el('div', { class: 'cover-lock-label', text: 'Ask a grown-up' }),
       ]));
     }
     return box;
@@ -273,6 +274,10 @@
   /** One cover card, as used on the home page and throughout the library. */
   function card(item, opts) {
     const options = opts || {};
+    // A locked title is one a grown-up has not unlocked yet. It still gets a
+    // cover and a place on the shelf; the lock is drawn over the artwork and
+    // opening it leads to the request panel on the title page.
+    const locked = options.locked !== undefined ? options.locked : !!item.locked;
     const meta = [fmt.ages(item), (item.tags && item.tags[0]) || null].filter(Boolean).join(' · ');
 
     const body = el('div', { class: 'card-body' }, [
@@ -289,9 +294,11 @@
     }
 
     const link = el('a', { class: 'card', href: `/content?id=${item.content_id}` },
-      [coverEl(item, options), body]);
+      [coverEl(item, { ...options, locked }), body]);
 
-    if (options.preview === false) return link;
+    // No preview on a locked title: the one thing to do with it is ask, and the
+    // lock already says so.
+    if (options.preview === false || locked) return link;
 
     // A button cannot live inside an <a>, so the card is wrapped and the
     // preview control is positioned over the cover.
@@ -532,13 +539,63 @@
   }
 
   // --- modal ---------------------------------------------------------------
-  function modal(title, contentNode, footerNodes) {
+  function modal(title, contentNode, footerNodes, options = {}) {
     const backdrop = el('div', { class: 'modal-backdrop' });
-    const close = () => backdrop.remove();
+    // Whatever had the keyboard before the dialog opened gets it back when the
+    // dialog closes, so a keyboard user is not dropped at the top of the page.
+    const opener = document.activeElement;
+
+    /** Everything inside the dialog a keyboard can reach, in document order. */
+    const focusable = () => Array.from(backdrop.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]),'
+      + ' textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter((n) => n.offsetParent !== null);
+
+    // Escape closes, and Tab is kept inside: without this the next Tab leaves
+    // the dialog for the page behind it, which is still there and still
+    // clickable but is not what the reader is looking at.
+    const onKey = (e) => {
+      // One dialog can sit on top of another - a confirmation over an editor.
+      // Both listen on the document, so without this the Escape meant for the
+      // top one would close everything underneath it as well. Only the last
+      // backdrop in the document, which is the one on top, takes keys.
+      const stack = document.querySelectorAll('.modal-backdrop');
+      if (stack.length && stack[stack.length - 1] !== backdrop) return;
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      } else if (!backdrop.contains(document.activeElement)) {
+        e.preventDefault(); first.focus();
+      }
+    };
+
+    // The Escape handler is unbound by close() itself, whichever way the dialog
+    // was dismissed. Removing it only inside the Escape branch left a listener
+    // behind every time somebody used the X or clicked the backdrop, and they
+    // accumulated for as long as the page stayed open.
+    const close = (how) => {
+      // A dialog holding work somebody has typed may ask before it goes: a
+      // `confirmClose` that returns false keeps it open. Escape, the X and a
+      // click on the backdrop all come through here, so one guard covers all
+      // three. A caller that must close regardless - a save that succeeded -
+      // passes { force: true }.
+      if (!(how && how.force === true) && typeof options.confirmClose === 'function'
+          && options.confirmClose() === false) return;
+      document.removeEventListener('keydown', onKey);
+      backdrop.remove();
+      if (opener && typeof opener.focus === 'function' && document.contains(opener)) {
+        opener.focus();
+      }
+    };
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-    document.addEventListener('keydown', function esc(e) {
-      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
-    });
+    document.addEventListener('keydown', onKey);
 
     backdrop.appendChild(el('div', { class: 'modal' }, [
       el('div', { class: 'modal-head' }, [
@@ -549,6 +606,12 @@
       footerNodes ? el('div', { class: 'modal-foot' }, footerNodes) : null,
     ]));
     document.body.appendChild(backdrop);
+    // Announce it as a dialog, and put the keyboard inside it.
+    backdrop.setAttribute('role', 'dialog');
+    backdrop.setAttribute('aria-modal', 'true');
+    backdrop.setAttribute('aria-label', title);
+    const firstFocusable = focusable()[0];
+    if (firstFocusable) firstFocusable.focus();
     return { close, node: backdrop };
   }
 

@@ -75,6 +75,10 @@ function stem(word) {
     w = `${w.slice(0, -3)}y`;
   } else if (/(ches|shes|xes|zes|ses)$/.test(w)) {
     w = w.slice(0, -2);
+  } else if (/oes$/.test(w) && w.length > 4) {
+    // volcanoes -> volcano, heroes -> hero. Without this the plural a child
+    // types never matches the singular in the blurb.
+    w = w.slice(0, -2);
   } else if (/s$/.test(w)) {
     w = w.slice(0, -1);
   }
@@ -165,6 +169,42 @@ const TAG_SYNONYMS = {
   History: ['history', 'historical', 'ancient', 'past', 'museum', 'castle', 'egypt', 'roman'],
   Science: ['science', 'experiment', 'volcano', 'chemistry', 'biology', 'physics', 'invention'],
   Dinosaurs: ['dinosaur', 't-rex', 'trex', 'triceratops', 'fossil', 'jurassic', 'prehistoric'],
+
+  // The catalogue grew; so did the vocabulary. The tag names themselves are
+  // read live from the database, so a new category is matched by its own name
+  // automatically - these are the words a child uses *instead* of the name.
+  Robots: ['robot', 'android', 'machine', 'cyborg', 'automaton', 'circuit', 'programmed'],
+  Pirates: ['pirate', 'treasure map', 'galleon', 'buccaneer', 'plank', 'doubloon', 'cutlass'],
+  Music: ['music', 'song', 'sing', 'singing', 'band', 'instrument', 'guitar', 'piano', 'drum',
+    'trumpet', 'violin', 'cello', 'orchestra', 'choir', 'tune'],
+  Food: ['food', 'cook', 'cooking', 'bake', 'baking', 'cake', 'bread', 'soup', 'dinner',
+    'recipe', 'kitchen', 'pancake', 'hungry', 'eat'],
+  Sports: ['sport', 'football', 'soccer', 'race', 'racing', 'running', 'swim', 'swimming',
+    'team', 'match', 'goal', 'cycling', 'chess', 'training', 'win', 'competition'],
+  School: ['school', 'class', 'classroom', 'teacher', 'homework', 'lesson', 'playground',
+    'pupil', 'test', 'spelling'],
+  Trains: ['train', 'railway', 'station', 'platform', 'locomotive', 'engine driver', 'track',
+    'timetable', 'carriage'],
+  Insects: ['insect', 'bug', 'ant', 'bee', 'beetle', 'butterfly', 'wasp', 'spider', 'worm',
+    'caterpillar', 'ladybird'],
+  Birds: ['bird', 'owl', 'starling', 'robin', 'gull', 'seagull', 'nest', 'feather', 'wing',
+    'sparrow', 'crow', 'eagle'],
+  Ocean: ['ocean', 'sea', 'seaside', 'beach', 'tide', 'wave', 'whale', 'dolphin', 'shark',
+    'reef', 'shore', 'deep sea', 'underwater'],
+  Weather: ['weather', 'rain', 'raining', 'storm', 'thunder', 'lightning', 'wind', 'windy',
+    'forecast', 'cloud', 'fog', 'hail'],
+  Winter: ['winter', 'snow', 'snowy', 'ice', 'icy', 'frost', 'freezing', 'cold', 'sledge',
+    'christmas'],
+  Night: ['night', 'dark', 'darkness', 'midnight', 'bedtime', 'stars', 'moonlight', 'nocturnal',
+    'late'],
+  Islands: ['island', 'islands', 'desert island', 'lighthouse', 'harbour', 'shipwreck', 'coast'],
+  Deserts: ['desert', 'sand', 'dune', 'cactus', 'oasis', 'drought', 'heat'],
+  Farming: ['farm', 'farmer', 'farming', 'tractor', 'sheep', 'cow', 'barn', 'harvest', 'crop',
+    'field', 'hay', 'allotment', 'garden', 'gardening'],
+  Art: ['art', 'draw', 'drawing', 'paint', 'painting', 'colour', 'colours', 'picture', 'sketch',
+    'museum', 'design'],
+  Inventions: ['invention', 'invent', 'inventor', 'build', 'building', 'engineer', 'engineering',
+    'gadget', 'machine', 'patent', 'fix', 'fixing', 'repair'],
 };
 
 /** Pre-stems the synonym table once, at load. */
@@ -219,6 +259,12 @@ const INTENT_PATTERNS = {
   THANKS: /^(thanks|thank you|ty|cheers|nice one|great)\b/,
   HELP: /(what can you do|how does this work|who are you|what are you|^help\b|how do i use)/,
   CONTINUE: /(carry on|continue|where was i|what was i reading|my progress|finish(ing)? (my|the) book)/,
+  // Somebody asking for a suggestion without saying what of. There is nothing
+  // to search on, so the answer comes from what they have said they like.
+  ASK_RECOMMEND: /(recommend|suggest|suggestion|what should i (read|watch|pick)|what do i read|surprise me|any(thing)? good|something (to read|to watch|new|else to read)|pick (one|something|a book)|choose (one|something|for me)|help me (choose|pick|decide)|i('?m| am) bored|got any ideas|any ideas|what('?s| is) good)/,
+  // Answers to a question this chat asked a moment ago.
+  AFFIRM: /^(y|ya|yes|yeah|yep|yup|sure|ok|okay|okey|alright|go on|go ahead|please|sounds good|sounds fun|why not|definitely|i guess|that works|lets do it|let's do it)\b/,
+  DENY: /^(n|no|nope|nah|not really|not right now|not now|no thanks|no thank you|something else|anything else|another one|different|other)\b/,
 };
 
 /** Format, length, age and reading level, read straight off the sentence. */
@@ -279,12 +325,26 @@ function analyse(text, catalogueTags = []) {
   // A concept on both sides is being refused, not requested: the negation wins.
   const tags = concepts.filter((t) => !negatedConcepts.includes(t));
 
+  // A yes or a no only counts as an answer when it is all that was said. If a
+  // topic or a format came with it ("yes, something funny"), that is the real
+  // message and the plain reading wins.
+  const bareReply = !tags.length && !negatedConcepts.length && !slots.type
+    && !slots.length && slots.age === null && !slots.readingLevel && tokens.length <= 5;
+
   let intent = 'RECOMMEND';
   if (!normalised) intent = 'EMPTY';
   else if (INTENT_PATTERNS.HELP.test(normalised)) intent = 'HELP';
   else if (INTENT_PATTERNS.THANKS.test(normalised)) intent = 'THANKS';
   else if (INTENT_PATTERNS.GREET.test(normalised) && tokens.length <= 4) intent = 'GREET';
   else if (INTENT_PATTERNS.CONTINUE.test(normalised)) intent = 'CONTINUE';
+  else if (bareReply && INTENT_PATTERNS.AFFIRM.test(normalised)) intent = 'AFFIRM';
+  else if (bareReply && INTENT_PATTERNS.DENY.test(normalised)) intent = 'DENY';
+  // Asking for a suggestion with no topic attached. A topic in the same
+  // sentence makes it an ordinary search instead; a format or a length does
+  // not, so "recommend a short video" still narrows what comes back.
+  else if (!tags.length && INTENT_PATTERNS.ASK_RECOMMEND.test(normalised)) {
+    intent = 'ASK_RECOMMEND';
+  }
 
   const hasSignal = Boolean(
     tags.length || slots.type || slots.length || slots.age
@@ -292,6 +352,11 @@ function analyse(text, catalogueTags = []) {
   );
   // Someone chatting about something that is not a story at all.
   if (intent === 'RECOMMEND' && !hasSignal && contentTokens.length > 0) intent = 'UNCLEAR';
+  // "recommend me something" carries no topic by design: it is a clear request,
+  // not an unclear one, so it must not be downgraded here.
+  if (intent === 'UNCLEAR' && INTENT_PATTERNS.ASK_RECOMMEND.test(normalised)) {
+    intent = 'ASK_RECOMMEND';
+  }
 
   return {
     raw: String(text || ''),

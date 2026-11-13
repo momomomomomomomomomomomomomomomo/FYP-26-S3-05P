@@ -26,8 +26,11 @@ npm start                # http://localhost:3000
 |---|---|---|---|---|---|
 | Browse and preview the catalogue | whole catalogue | **filtered by their parent**, simplified | ✅ | ✅ | ✅ |
 | Favourites, watchlist, progress, badges | favourites by email | ✅ | ✅ | — | — |
-| Read, review or react to a title | — | ✅ | ✅ | — | — |
+| Read a title | **first 4 pages** | ✅ | ✅ | ✅ **to check it, nothing recorded** | first 4 pages |
+| Write the pages of a book | — | — | — | ✅ | — |
+| Review or react to a title | — | ✅ | ✅ | — | — |
 | Story Chat | — | ✅ (filtered) | ✅ | — | — |
+| Interests, used by Story Chat | — | ✅ | ✅ | — | — |
 | Ask to unlock a blocked title | — | ✅ | — | — | — |
 | Create and manage child accounts | — | — | **their own children** | — | via the user list |
 | Age limits, blocked genres, screen time | — | — | ✅ | — | — |
@@ -37,6 +40,13 @@ npm start                # http://localhost:3000
 | Reports, announcements, audit log | — | — | — | — | ✅ |
 
 A Guest is simply an unauthenticated visitor — there is no guest row in `users`.
+
+A Guest can open a book and read its first four pages, and is then asked to sign
+up to carry on. The cap is applied in the query that fetches the pages, so the
+rest of the text never leaves the server for someone without an account; the
+page they stopped on travels through the sign-up so they resume there rather
+than starting again. Staff accounts have no reader profile and see the same four
+pages, which is enough to check how a title opens.
 
 **Librarian and Administrator are deliberately separate.** Cataloguing and account
 administration are different duties, so neither role can do the other's work: a
@@ -50,6 +60,13 @@ or notifications, and no family page. They may browse and preview the catalogue 
 a librarian has to be able to check their own shelves — and edit their own name
 and password, and that is all. The reader routes reject them outright rather than
 quietly building up a personal library nobody intended them to have.
+
+**A librarian can read a book all the way through**, because a librarian writes
+its pages and cannot proof-read four at a time. That is as far as it goes: the
+routes that record anything sit behind the same reader check as before, so no
+progress is kept, no screen time is counted and no badge is ever earned. The
+reader says so on the page rather than letting a librarian wonder where their
+place went. An administrator does not catalogue, so they stay on the preview.
 
 Signing in takes each role where its work is: administrators land on the admin
 console, librarians on the catalogue, and everyone else on the landing page.
@@ -80,6 +97,36 @@ The language model itself (`server/utils/nlp.js`) never touches the database and
 knows nothing about who is asking — it is handed documents that have already
 been filtered and only ranks them.
 
+### Starting a recommendation
+
+Not every reader arrives knowing what they want. Two things handle that.
+
+**Interests.** A reader picks the topics they enjoy on their account page, under
+Profile. Asked for something with no subject attached — "recommend me
+something", "surprise me", "I'm bored" — Story Chat searches those instead of
+falling back to whatever is most popular, and says so: *"Going on what you have
+said you like — Space and Dinosaurs — here is what I found."*
+
+Interests are the catalogue's own tags, so an interest maps straight onto
+content with no second vocabulary to keep in step. They are held to the same
+scope as everything else, twice over: a topic a child cannot see is not offered
+on the account page and is refused if the request is forged, and one that
+becomes unreachable later — a genre the parent blocks afterwards — drops out of
+the recommendation quietly rather than producing a promise the search cannot
+keep.
+
+**Leading questions.** Rather than open with instructions, the chat asks
+something answerable: *"What do you feel like reading today?"*, *"Are you in the
+mood to experience fantasy?"*, *"Shall I look for a book, or would a video suit
+you better?"* Over two hundred distinct questions are reachable in the default
+library — fifteen open ones, plus nine topic templates and four interest
+templates filled from the tags that reader's own library holds, so an offer is
+never a dead end.
+
+When a question names a topic, the session remembers it in
+`chat_sessions.pending_tag`, so a bare *"yes please"* means something and
+*"no thanks"* offers a different one rather than being searched for as words.
+
 ## How a child's library is filtered
 
 All filtering happens in SQL, in `server/utils/access.js`, so a hidden title is
@@ -90,8 +137,34 @@ never sent to the browser. A title is visible to a child when:
 OR  a parent has APPROVED it for them
 ```
 
-If `parental_controls.allow_content` is off, only approved titles appear.
 `max_age` falls back to the child's own age when no limit is set.
+
+**Seeing and opening are separate.** `contentScopeClause` is the gate: it
+decides what a child may *open*, and every route that hands over a title or its
+text goes through it. `contentListingClause` decides what a shelf *lists*, and
+the two differ in exactly one place. When `parental_controls.allow_content` is
+off, the shelf still lists everything the age and genre rules allow, each cover
+marked `locked`, and opening one leads to the "ask a grown-up" request that was
+already there. An empty library told a child only that something was broken; a
+locked one tells them what to do about it.
+
+Age limits and blocked genres are *not* softened the same way: those still hide
+a title outright, because a child is not meant to learn what their parent ruled
+out for them, and a locked cover would say so by being there.
+
+## A library that looks used
+
+`npm run db:setup` does not leave an empty shelf. It seeds 26 demo families —
+26 adults and 43 children — who between them have written **459 reviews across
+all 86 titles**, with the reading progress, reactions and favourites behind
+them. Ratings run from 3.0 to 5.0 stars, dated across the past twenty months.
+
+Everything about it is deterministic, so a rebuild reproduces the same library
+rather than a different one — on any machine, on any day, since the dates are
+measured from a fixed point rather than from today — and reversible with
+`npm run seed:community -- --reset`. The generator refuses to contradict the
+access rules: a child never reviews a title their own age limit would hide, and
+staff accounts never review anything, because they have no reader profile.
 
 ## The landing page
 
@@ -118,10 +191,22 @@ One page, four experiences, decided by who is looking:
 - **Story Chat** — an NLP recommender that reads a sentence and searches the
   library: normalise → tokenise → stem → negation → TF-IDF index scored with
   **BM25**, alongside the format, length, age and reading level it reads out of
-  the request. It understands what you *don't* want ("an adventure, but nothing
+  the request. It knows 36 subject concepts and 348 of the words children use
+  for them, and every one of the 86 titles is reachable through its own subject
+  matter. It understands what you *don't* want ("an adventure, but nothing
   scary"), and it learns new words as the catalogue grows, because the category
   vocabulary comes from the database rather than a hard-coded list. It runs
   in-process: no API key, no request leaves the machine.
+- **Seventy-eight full-text books** — real stories, 20 to 31 pages each, 2,029
+  pages and about 50,000 words in all, read page by page in the app rather than
+  as a placeholder. Every title in the catalogue, the eight videos included, has
+  generated cover art drawn as SVG from a palette-and-motif system, so nothing
+  is fetched from the internet and no image is licensed from anyone. The books
+  live in `database/books/`, one file per book; `npm run books:import` loads
+  them and `npm run books:covers` draws the covers. A librarian writes any
+  further books in the app itself: the catalogue's **Pages** editor takes a
+  whole story pasted in at once or a page at a time, and the books shelf shows
+  at a glance which titles are still only a catalogue entry.
 - **Reading** — progress tracking, favourites, watchlist, reviews and ratings,
   one-tap **emoji reactions** for readers who would rather not write, and seven
   automatic badges. Visitors without an account can favourite against an email
@@ -130,9 +215,10 @@ One page, four experiences, decided by who is looking:
   email, set age limits, blocked genres and daily screen time, approve or refuse
   unlock requests, and read each child's activity.
 - **Catalogue** (librarians) — the shelf at a glance, titles to add, edit and
-  remove, **bulk CSV import**, and the **category vocabulary** behind every
-  library filter. The overview flags titles with no category or no age rating,
-  and titles nobody has ever opened.
+  remove, a **page editor** for writing the text of a book, **bulk CSV import**,
+  and the **category vocabulary** behind every library filter. The overview
+  flags titles with no category, no age rating or no pages, and titles nobody
+  has ever opened.
 - **Administration** — every account (including appointing librarians), reported
   content, site-wide announcements, and the full audit trail.
 
@@ -145,10 +231,27 @@ server — no build step, no framework, no bundler.
 ## Layout
 
 ```
-database/   schema.sql (22 tables) and seed.sql (sample library)
+database/   schema.sql (24 tables), seed.sql (sample library),
+            storynest-full.sql (the finished database, for importing)
 scripts/    setup-db.js — one command to build the database
 server/     Express app: config, db pool, middleware, routes, access rules
 public/     the front end: one HTML file and one JS file per page
+tests/      run.js and six suites — npm test
 ```
 
 The API is documented by section in `INSTALLATION.md` §9–10.
+
+## Tests
+
+```bash
+npm test
+```
+
+214 checks across six suites: the shape of a fresh install, every role against
+every protected endpoint, the things people actually do, what a restricted
+child may see, input that should be refused, and Story Chat. They build their
+own database and server, and drop both afterwards, so they never touch the one
+in your `.env` — which is what lets them check destructive things like whether
+a librarian can really delete a title.
+
+There is no test framework to install. `npm test -- scope` runs one suite.

@@ -16,6 +16,8 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 
 const config = require('../server/config');
+const { importBooks } = require('../database/import-books');
+const { seedCommunity } = require('../database/seed-community');
 
 const FORCE = process.argv.includes('--force') || process.argv.includes('-f');
 const ROOT = path.join(__dirname, '..');
@@ -39,12 +41,44 @@ const TEST_PASSWORDS = {
 
 function say(msg) { console.log(msg); }
 
-/** A birthday `years` ago, as YYYY-MM-DD, so demo ages stay correct over time. */
+/**
+ * A birthday that makes a demo child `years` old, counted from a fixed point
+ * rather than from today.
+ *
+ * Counting from today would keep the ages looking right forever, but it also
+ * means two installations built on different days hold different dates, and a
+ * database exported from one machine no longer matches one built on another.
+ * The ages here are pinned instead, and every demo child carries an explicit
+ * age cap, so what each child can see does not depend on the calendar.
+ */
+const REFERENCE_YEAR = 2026;
+
+/**
+ * Reads one of the SQL files, pointing it at the configured database.
+ *
+ * The .sql files name `storynest` directly in their DROP/CREATE/USE lines so
+ * that they can also be run by hand through the mysql client. That would
+ * otherwise ignore DB_NAME: on a machine using a different name the schema
+ * would build `storynest` and the rest of this script would then fail against
+ * an empty one. Rewriting those three statements keeps both routes working.
+ */
+function sqlFile(name) {
+  const sql = fs.readFileSync(path.join(ROOT, 'database', name), 'utf8');
+  const db = config.db.database;
+  if (!/^[A-Za-z0-9_$]+$/.test(db)) {
+    throw new Error(`DB_NAME "${db}" is not a usable MySQL database name.`);
+  }
+  return sql
+    .replace(/DROP\s+DATABASE\s+IF\s+EXISTS\s+`?[A-Za-z0-9_$]+`?/gi,
+      `DROP DATABASE IF EXISTS \`${db}\``)
+    .replace(/CREATE\s+DATABASE\s+`?[A-Za-z0-9_$]+`?/gi,
+      `CREATE DATABASE \`${db}\``)
+    .replace(/^\s*USE\s+`?[A-Za-z0-9_$]+`?\s*;/gim,
+      `USE \`${db}\`;`);
+}
+
 function thisYearMinus(years) {
-  const d = new Date();
-  d.setUTCFullYear(d.getUTCFullYear() - years);
-  d.setUTCMonth(0, 15);
-  return d.toISOString().slice(0, 10);
+  return `${REFERENCE_YEAR - years}-01-15`;
 }
 
 async function run() {
@@ -87,13 +121,13 @@ async function run() {
     }
   }
 
-  say('1/3  Creating tables ...');
-  await conn.query(fs.readFileSync(path.join(ROOT, 'database', 'schema.sql'), 'utf8'));
+  say('1/5  Creating tables ...');
+  await conn.query(sqlFile('schema.sql'));
 
-  say('2/3  Loading the sample library ...');
-  await conn.query(fs.readFileSync(path.join(ROOT, 'database', 'seed.sql'), 'utf8'));
+  say('2/5  Loading the sample library ...');
+  await conn.query(sqlFile('seed.sql'));
 
-  say('3/3  Creating demo and test accounts ...');
+  say('3/5  Creating demo and test accounts ...');
   await conn.changeUser({ database: config.db.database });
 
   const [adminHash, librarianHash, adultHash, childHash] = await Promise.all([
@@ -144,6 +178,24 @@ async function run() {
     [leoId, adaId],
   );
 
+  // What each demo reader has said they like. Story Chat answers an open
+  // request - "recommend me something" - from this list, so the demo accounts
+  // need one for the feature to show itself. None of these crosses the age cap
+  // or the blocked genre set just above: Leo has no Mystery, Ada no Sci-Fi.
+  //
+  // The assignments themselves happen after the books are in. Half of these
+  // topics only exist as tags once database/books/ has been imported, and a
+  // name with no tag behind it inserts nothing at all.
+  async function setInterests(userId, tagNames) {
+    for (const tagName of tagNames) {
+      await conn.execute(
+        `INSERT IGNORE INTO user_interests (user_id, tag_id)
+         SELECT ?, tag_id FROM tags WHERE tag_name = ?`,
+        [userId, tagName],
+      );
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Test accounts - ADMIN, ADULT and CHILD, one each.
   // ---------------------------------------------------------------------------
@@ -164,13 +216,20 @@ async function run() {
     'INSERT INTO parent_child_relationships (parent_id, child_id) VALUES (?, ?)',
     [testParentId, testChildId],
   );
-  // A controls row with everything left open: the child is still filtered by
-  // its own age, but nothing else is in the way.
+  // No screen limit and nothing blocked, so this account is the uncluttered
+  // one to demonstrate with. The age cap is written out as the child's own age
+  // rather than left NULL: a NULL cap makes the app fall back to an age worked
+  // out from the birthday against today's date, which would creep upward in an
+  // exported copy. Stating it keeps the account's view the same on any date.
   await conn.execute(
     `INSERT INTO parental_controls (child_id, max_age, daily_screen_limit, allow_content)
-     VALUES (?, NULL, NULL, TRUE)`,
+     VALUES (?, 9, NULL, TRUE)`,
     [testChildId],
   );
+
+  // The books that ship with their pages written: database/books/.
+  say('4/5  Adding the full-text books ...');
+  const imported = await importBooks(conn, { createdBy: librarianId });
 
   // The catalogue is the librarian's work, so the sample library is theirs.
   await conn.execute('UPDATE content SET created_by = ? WHERE created_by IS NULL', [librarianId]);
@@ -263,6 +322,19 @@ async function run() {
     [adminId],
   );
 
+  // A library with no readers in it looks unfinished. This adds demo families,
+  // reviews on every title, and the reading history behind those reviews.
+  await setInterests(leoId, ['Dinosaurs', 'Space', 'Animals']);
+  await setInterests(adaId, ['Fantasy', 'Mystery', 'Art']);
+  await setInterests(samId, ['Animals', 'Food', 'Friendship']);
+  await setInterests(parentId, ['Nature', 'History']);
+  await setInterests(parent2Id, ['Humour', 'Ocean']);
+  await setInterests(testChildId, ['Robots', 'Science']);
+  await setInterests(testParentId, ['Adventure', 'Poetry']);
+
+  say('5/5  Filling the library with readers ...');
+  const community = await seedCommunity(conn);
+
   const [counts] = await conn.query(
     `SELECT (SELECT COUNT(*) FROM content) AS content,
             (SELECT COUNT(*) FROM tags) AS tags,
@@ -272,7 +344,10 @@ async function run() {
   await conn.end();
 
   say('\nDone.');
-  say(`  ${counts[0].users} accounts, ${counts[0].content} titles, ${counts[0].tags} tags.\n`);
+  say(`  ${counts[0].users} accounts, ${counts[0].content} titles, ${counts[0].tags} tags.`);
+  say(`  ${imported.total} of those titles are full books, with ${imported.pages} pages of text.`);
+  say(`  ${community.reviews} reviews from ${community.adults} demo families `
+    + `(${community.children} children).\n`);
   say('Demo sign-ins');
   say('-------------');
   say(`  Administrator  admin@storynest.local   /  ${DEMO_PASSWORDS.admin}`);
@@ -288,7 +363,10 @@ async function run() {
   say(`  Librarian      test.librarian@storynest.local  /  ${TEST_PASSWORDS.librarian}`);
   say(`  Adult          test.parent@storynest.local  /  ${TEST_PASSWORDS.adult}   (Test Kid)`);
   say(`  Child          testkid                      /  ${TEST_PASSWORDS.child}         (age 9)`);
+  say(`  Demo families      *.@example.com              /  Reader123!   (reviews only)`);
   say('\nChange these before showing the app to anyone outside your team.');
+  say('Covers for the full books are generated separately, and are committed to the');
+  say('repository already:  npm run books:covers\n');
   say('Start the server with:  npm start\n');
 }
 

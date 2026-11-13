@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Girl Who Drew the River">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#006d77"/><stop offset="1" stop-color="#83c5be"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <circle cx="356" cy="140" r="2.6" fill="#ffddd2" opacity="0.84"/><circle cx="400" cy="232" r="3.6" fill="#ffddd2" opacity="0.81"/><circle cx="53" cy="419" r="1.6" fill="#ffddd2" opacity="0.45"/><circle cx="586" cy="44" r="2.2" fill="#ffddd2" opacity="0.37"/><circle cx="52" cy="289" r="3.8" fill="#ffddd2" opacity="0.75"/><circle cx="440" cy="45" r="2.9" fill="#ffddd2" opacity="0.60"/><circle cx="128" cy="377" r="1.2" fill="#ffddd2" opacity="0.75"/><circle cx="95" cy="31" r="3.1" fill="#ffddd2" opacity="0.72"/><circle cx="511" cy="347" r="3.5" fill="#ffddd2" opacity="0.72"/><circle cx="31" cy="156" r="1.5" fill="#ffddd2" opacity="0.68"/><circle cx="232" cy="140" r="3.4" fill="#ffddd2" opacity="0.51"/><circle cx="517" cy="243" r="1.6" fill="#ffddd2" opacity="0.58"/><circle cx="343" cy="186" r="1.9" fill="#ffddd2" opacity="0.77"/><circle cx="358" cy="161" r="3.2" fill="#ffddd2" opacity="0.64"/><circle cx="242" cy="249" r="1.7" fill="#ffddd2" opacity="0.39"/><circle cx="353" cy="230" r="2.4" fill="#ffddd2" opacity="0.50"/>
+    <g transform="translate(300 290) rotate(-18)">
+      <path d="M0,140 C-110,60 -110,-80 0,-150 C110,-80 110,60 0,140 Z" fill="#ffddd2"/>
+      <path d="M0,140 L0,-150" stroke="#006d77" stroke-width="6" opacity=".5"/>
+      <path d="M0,90 L-58,50 M0,90 L58,50"
+        stroke="#006d77" stroke-width="4" opacity=".32"/><path d="M0,48 L-55,8 M0,48 L55,8"
+        stroke="#006d77" stroke-width="4" opacity=".32"/><path d="M0,6 L-52,-34 M0,6 L52,-34"
+        stroke="#006d77" stroke-width="4" opacity=".32"/><path d="M0,-36 L-49,-76 M0,-36 L49,-76"
+        stroke="#006d77" stroke-width="4" opacity=".32"/><path d="M0,-78 L-46,-118 M0,-78 L46,-118"
+        stroke="#006d77" stroke-width="4" opacity=".32"/><path d="M0,-120 L-43,-160 M0,-120 L43,-160"
+        stroke="#006d77" stroke-width="4" opacity=".32"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#ffddd2" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE GIRL WHO</tspan><tspan x="300" dy="68.2">DREW THE</tspan><tspan x="300" dy="68.2">RIVER</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Ada Rennick</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#ffddd2">STORYNEST</text>
+</svg>

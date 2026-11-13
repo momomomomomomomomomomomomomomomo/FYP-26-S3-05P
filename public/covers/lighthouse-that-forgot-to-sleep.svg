@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="The Lighthouse That Forgot to Sleep">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b4965"/><stop offset="1" stop-color="#bee9e8"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    <path d="M0,330 Q75,300 150,330 T300,330 T450,330 T600,330 V460 H0 Z" fill="#62b6cb" opacity=".55"/>
+    <path d="M0,372 Q75,342 150,372 T300,372 T450,372 T600,372 V460 H0 Z" fill="#f08080" opacity=".5"/>
+    <g transform="translate(300 268)">
+      <path d="M-70,44 L70,44 L50,80 L-50,80 Z" fill="#f08080"/>
+      <path d="M0,-66 L0,44 M0,-66 L58,30 L0,30 Z" fill="#0b2b3c" opacity=".9" stroke="#0b2b3c" stroke-width="5"/>
+    </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="385" width="500" height="2" fill="#f08080" opacity=".9"/>
+  <text x="300" y="467.4" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">THE</tspan><tspan x="300" dy="68.2">LIGHTHOUSE</tspan><tspan x="300" dy="68.2">THAT FORGOT</tspan><tspan x="300" dy="68.2">TO SLEEP</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Mira Halloway</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#f08080">STORYNEST</text>
+</svg>

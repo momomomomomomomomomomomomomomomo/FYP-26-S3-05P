@@ -145,6 +145,8 @@
     const meta = [
       fmt.ages(item),
       item.content_type === 'VIDEO' ? 'Video' : 'Book',
+      // Only books with their text in StoryNest can say how long they are.
+      item.page_count ? `${item.page_count} pages` : null,
       fmt.duration(item.duration_minutes),
       item.reading_level ? fmt.level(item.reading_level) : null,
       item.language,
@@ -152,15 +154,26 @@
 
     const actions = el('div', { class: 'row' });
     // Staff may look at any title - a librarian has to be able to check their
-    // own cataloguing - but reading it, saving it and reviewing it all belong to
-    // a reader's account, which staff do not have.
+    // own cataloguing - but saving it and reviewing it belong to a reader's
+    // account, which staff do not have.
     const staff = global.SN.isStaff();
+    // A librarian writes the pages of a book, so a librarian can read one
+    // straight through to check it. It is proof-reading rather than reading:
+    // the page below records nothing and the buttons after this one stay off.
+    const proofing = staff && global.SN.user
+      && global.SN.user.role === 'LIBRARIAN' && item.content_type === 'BOOK';
 
     if (!staff) {
       actions.appendChild(el('a', {
         class: 'btn btn-primary',
         href: `/read?id=${item.content_id}`,
         text: item.content_type === 'VIDEO' ? '▶ Play' : '📖 Read now',
+      }));
+    } else if (proofing) {
+      actions.appendChild(el('a', {
+        class: 'btn btn-outline',
+        href: `/read?id=${item.content_id}`,
+        text: '📖 Read it through',
       }));
     }
 
@@ -201,9 +214,13 @@
       }));
     }
 
+    // A tag chip belongs to the shelf this title lives on. Sending a video's
+    // tags to the Library would land on a books-only shelf filtered by a topic
+    // the reader picked off a video.
+    const shelf = item.content_type === 'VIDEO' ? '/watch' : '/library';
     const tagRow = el('div', { class: 'chips', style: { marginBottom: '14px' } },
       (item.tags || []).map((tag) => el('a', {
-        class: 'chip', href: `/library?tag=${encodeURIComponent(tag)}`, text: tag,
+        class: 'chip', href: `${shelf}?tag=${encodeURIComponent(tag)}`, text: tag,
       })));
 
     host.appendChild(el('div', { class: 'detail' }, [

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" width="600" height="800" role="img" aria-label="Sprocket Learns to Wait">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b132b"/><stop offset="1" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420" stop-opacity="0"/>
+      <stop offset="0.22" stop-color="#0a1420" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#0a1420" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+  
+    
+      <g transform="translate(230 250) scale(1)" fill="#5bc0be">
+        <rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(0)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(36)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(72)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(108)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(144)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(180)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(216)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(252)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(288)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(324)"/>
+        <circle cx="0" cy="0" r="76"/><circle cx="0" cy="0" r="30" fill="#0b132b" opacity=".7"/>
+      </g>
+      <g transform="translate(390 320) scale(0.72)" fill="#5bc0be">
+        <rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(0)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(36)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(72)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(108)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(144)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(180)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(216)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(252)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(288)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(324)"/>
+        <circle cx="0" cy="0" r="76"/><circle cx="0" cy="0" r="30" fill="#0b132b" opacity=".7"/>
+      </g>
+      <g transform="translate(300 390) scale(0.5)" fill="#5bc0be">
+        <rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(0)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(36)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(72)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(108)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(144)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(180)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(216)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(252)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(288)"/><rect x="-11" y="-104" width="22" height="34" rx="5" transform="rotate(324)"/>
+        <circle cx="0" cy="0" r="76"/><circle cx="0" cy="0" r="30" fill="#0b132b" opacity=".7"/>
+      </g>
+  <rect x="0" y="440" width="600" height="360" fill="url(#scrim)"/>
+  <rect x="50" y="454" width="500" height="2" fill="#5bc0be" opacity=".9"/>
+  <text x="300" y="535.6" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="62" font-weight="700" fill="#ffffff" letter-spacing="1.5"><tspan x="300" dy="0">SPROCKET</tspan><tspan x="300" dy="68.2">LEARNS TO</tspan><tspan x="300" dy="68.2">WAIT</tspan></text>
+  <text x="300" y="718" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="23" fill="#ffffff" opacity=".82">Hector Salas</text>
+  <text x="300" y="764" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" letter-spacing="3.5" fill="#5bc0be">STORYNEST</text>
+</svg>
